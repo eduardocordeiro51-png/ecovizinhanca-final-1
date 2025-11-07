@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EcoVizinhança</title>
+    <title>EcoVizinhança 2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,6 +22,9 @@
             },
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
+            },
+            boxShadow: {
+              'top': '0 -4px 6px -1px rgb(0 0 0 / 0.1), 0 -2px 4px -2px rgb(0 0 0 / 0.1)',
             }
           }
         }
@@ -29,12 +32,30 @@
     </script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      .chat-bubble-user {
+        background-color: #1E88E5;
+        color: white;
+        border-radius: 1.25rem 1.25rem 0.25rem 1.25rem;
+      }
+      .chat-bubble-model {
+        background-color: #e5e7eb;
+        color: #343a40;
+        border-radius: 1.25rem 1.25rem 1.25rem 0.25rem;
+      }
+      .journey-step-active {
+        transform: scale(1.1);
+        border-color: #FFC107;
+      }
+    </style>
 </head>
-<body>
+<body class="bg-gray-200">
     <div id="root"></div>
 
-    <script type="text/javascript">
-// --- Início do Código do Aplicativo Consolidado ---
+    <script type="text/babel" data-type="module">
+// --- Gemini API Import ---
+import { GoogleGenAI } from 'https://esm.run/@google/genai';
 
 // --- types.js ---
 const Screen = {
@@ -62,13 +83,20 @@ const MapPointType = {
   Alert: '⚠️ Alertas',
 };
 
+const UserLevel = {
+    Semente: 'Semente',
+    Broto: 'Broto',
+    Arvore: 'Árvore',
+    Floresta: 'Floresta'
+};
+
 // --- constants.js ---
 const MOCK_USER = {
   name: 'Ana Silva',
   ecoName: '@AnaDaHorta',
   email: 'ana.silva@email.com',
   cep: '01000-000',
-  level: 'Árvore',
+  level: UserLevel.Arvore,
   ecoCoins: 1250,
   xp: 450,
   xpToNextLevel: 1000,
@@ -110,6 +138,12 @@ const MOCK_MUTIROES = [
     { id: 'm2', title: 'Plantio de Árvores na Praça Central', date: 'Domingo, 29/09, 10h', location: 'Praça Central', participants: 8, description: 'Recebemos 20 mudas de ipês e queremos deixar nossa praça mais verde. Venha ajudar!' },
 ];
 
+const MOCK_DONATIONS = [
+    { id: 'd1', title: 'Cadeira de escritório', author: 'Mariana F.', imageUrl: 'https://picsum.photos/seed/cadeira/200/200', description: 'Em bom estado, com pequeno defeito no braço.' },
+    { id: 'd2', title: 'Livros de ficção', author: 'Pedro L.', imageUrl: 'https://picsum.photos/seed/livros/200/200', description: 'Caixa com 10 livros variados.' },
+    { id: 'd3', title: 'Monitor de computador', author: 'Beatriz S.', imageUrl: 'https://picsum.photos/seed/monitor/200/200', description: 'Funcionando perfeitamente, modelo antigo.' },
+];
+
 const PILLAR_COLORS = {
     [Pillar.EnvironmentalManagement]: 'text-green-600',
     [Pillar.EnergyEfficiency]: 'text-blue-600',
@@ -126,10 +160,7 @@ const PILLAR_BG_COLORS = {
     [Pillar.SocialGovernance]: 'bg-purple-100',
 };
 
-
 // --- Componentes ---
-
-const e = React.createElement;
 
 const Onboarding = ({ onLogin }) => {
     const [step, setStep] = React.useState(0);
@@ -154,62 +185,68 @@ const Onboarding = ({ onLogin }) => {
     };
     
     if (step >= onboardingSteps.length) {
-        return e('div', { className: "p-8 h-screen flex flex-col justify-center" },
-            e('h2', { className: "text-2xl font-bold text-center text-cinza-escuro mb-6" }, "Crie sua conta EcoVizinho"),
-            e('form', { onSubmit: handleSubmit, className: "space-y-4" },
-                e('input', { type: "text", placeholder: "Seu nome completo", value: name, onChange: e => setName(e.target.value), className: "w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca", required: true }),
-                e('input', { type: "email", placeholder: "Seu melhor e-mail", value: email, onChange: e => setEmail(e.target.value), className: "w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca", required: true }),
-                e('input', { type: "text", placeholder: "CEP (para personalizar)", value: cep, onChange: e => setCep(e.target.value), className: "w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca", required: true }),
-                e('input', { type: "text", placeholder: "Seu Nome de EcoVizinho (ex: @JoaoDaRua)", value: ecoName, onChange: e => setEcoName(e.target.value), className: "w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca", required: true }),
-                e('button', { type: "submit", className: "w-full bg-verde-esperanca text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-colors" }, "Entrar na Comunidade")
-            )
+        return (
+            <div className="p-8 h-screen flex flex-col justify-center">
+                <h2 className="text-2xl font-bold text-center text-cinza-escuro mb-6">Crie sua conta EcoVizinho</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <input type="text" placeholder="Seu nome completo" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca" required />
+                    <input type="email" placeholder="Seu melhor e-mail" value={email} onChange={e => setEmail(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca" required />
+                    <input type="text" placeholder="CEP (para personalizar)" value={cep} onChange={e => setCep(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca" required />
+                    <input type="text" placeholder="Seu Nome de EcoVizinho (ex: @JoaoDaRua)" value={ecoName} onChange={e => setEcoName(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca" required />
+                    <button type="submit" className="w-full bg-verde-esperanca text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-colors">Entrar na Comunidade</button>
+                </form>
+            </div>
         );
     }
 
     const currentStep = onboardingSteps[step];
-    return e('div', { className: "bg-white h-screen flex flex-col justify-between" },
-        e('div', { className: "flex-grow flex flex-col items-center justify-center text-center p-8" },
-            e('span', { className: "text-6xl text-verde-esperanca mb-6", role: "img", "aria-label": "icon" }, currentStep.icon),
-            e('h2', { className: "text-2xl font-bold text-cinza-escuro mb-4" }, currentStep.title),
-            e('p', { className: "text-cinza-texto" }, currentStep.text)
-        ),
-        e('div', { className: "p-8" },
-            e('div', { className: "flex justify-center space-x-2 mb-4" },
-                onboardingSteps.map((_, index) => e('div', { key: index, className: `h-2 w-8 rounded-full ${step === index ? 'bg-verde-esperanca' : 'bg-gray-300'}` }))
-            ),
-            e('button', { onClick: handleNext, className: "w-full bg-verde-esperanca text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-colors" }, step === onboardingSteps.length - 1 ? 'Começar!' : 'Próximo')
-        )
+    return (
+        <div className="bg-white h-screen flex flex-col justify-between">
+            <div className="flex-grow flex flex-col items-center justify-center text-center p-8">
+                <span className="text-6xl text-verde-esperanca mb-6" role="img" aria-label="icon">{currentStep.icon}</span>
+                <h2 className="text-2xl font-bold text-cinza-escuro mb-4">{currentStep.title}</h2>
+                <p className="text-cinza-texto">{currentStep.text}</p>
+            </div>
+            <div className="p-8">
+                <div className="flex justify-center space-x-2 mb-4">
+                    {onboardingSteps.map((_, index) => <div key={index} className={`h-2 w-8 rounded-full ${step === index ? 'bg-verde-esperanca' : 'bg-gray-300'}`}></div>)}
+                </div>
+                <button onClick={handleNext} className="w-full bg-verde-esperanca text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-colors">{step === onboardingSteps.length - 1 ? 'Começar!' : 'Próximo'}</button>
+            </div>
+        </div>
     );
 };
 
 const Header = ({ user }) => {
     const progress = (user.xp / user.xpToNextLevel) * 100;
-    return e('header', { className: "bg-white shadow-md p-4 sticky top-0 z-10" },
-        e('div', { className: "flex justify-between items-center" },
-            e('div', { className: "flex items-center space-x-3" },
-                e('img', { src: user.avatarUrl, alt: "Avatar do usuário", className: "w-12 h-12 rounded-full border-2 border-verde-esperanca" }),
-                e('div', null,
-                    e('h1', { className: "font-bold text-cinza-escuro" }, user.name),
-                    e('p', { className: "text-sm text-cinza-texto" }, user.ecoName)
-                )
-            ),
-            e('div', { className: "flex items-center space-x-2 text-amarelo-sol font-bold" },
-                e('span', { role: "img", "aria-label": "EcoMoedas", className: "text-2xl" }, '🪙'),
-                e('span', { className: "text-lg" }, user.ecoCoins)
-            )
-        ),
-        e('div', { className: "mt-3" },
-            e('div', { className: "flex justify-between items-center text-sm mb-1" },
-                e('div', { className: "flex items-center space-x-1 font-semibold text-cinza-escuro" },
-                    e('span', { role: "img", "aria-label": "Nível", className: "text-lg" }, '🌳'),
-                    e('span', null, `Nível: ${user.level}`)
-                ),
-                e('span', { className: "text-cinza-texto" }, `${user.xp} / ${user.xpToNextLevel} XP`)
-            ),
-            e('div', { className: "w-full bg-gray-200 rounded-full h-2.5" },
-                e('div', { className: "bg-azul-cerrado h-2.5 rounded-full", style: { width: `${progress}%` } })
-            )
-        )
+    return (
+        <header className="bg-white shadow-md p-4 sticky top-0 z-10">
+            <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-3">
+                    <img src={user.avatarUrl} alt="Avatar do usuário" className="w-12 h-12 rounded-full border-2 border-verde-esperanca" />
+                    <div>
+                        <h1 className="font-bold text-cinza-escuro">{user.name}</h1>
+                        <p className="text-sm text-cinza-texto">{user.ecoName}</p>
+                    </div>
+                </div>
+                <div className="flex items-center space-x-2 text-amarelo-sol font-bold">
+                    <span role="img" aria-label="EcoMoedas" className="text-2xl">🪙</span>
+                    <span className="text-lg">{user.ecoCoins}</span>
+                </div>
+            </div>
+            <div className="mt-3">
+                <div className="flex justify-between items-center text-sm mb-1">
+                    <div className="flex items-center space-x-1 font-semibold text-cinza-escuro">
+                        <span role="img" aria-label="Nível" className="text-lg">🌳</span>
+                        <span>Nível: {user.level}</span>
+                    </div>
+                    <span className="text-cinza-texto">{user.xp} / {user.xpToNextLevel} XP</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div className="bg-azul-cerrado h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                </div>
+            </div>
+        </header>
     );
 };
 
@@ -221,44 +258,50 @@ const BottomNav = ({ activeScreen, setActiveScreen }) => {
         { icon: '👥', label: 'Comunidade', screen: Screen.Community },
         { icon: '👤', label: 'Perfil', screen: Screen.Profile },
     ];
-    return e('nav', { className: "fixed bottom-0 left-0 right-0 max-w-lg mx-auto h-16 bg-white border-t border-gray-200 flex justify-around items-center shadow-top z-10" },
-        navItems.map(item => e('button', {
-            key: item.screen,
-            onClick: () => setActiveScreen(item.screen),
-            className: `flex flex-col items-center justify-center w-full transition-colors ${activeScreen === item.screen ? 'text-verde-esperanca' : 'text-gray-500'} hover:text-verde-esperanca`
-        },
-            e('span', { className: "text-2xl", role: "img", "aria-label": item.label }, item.icon),
-            e('span', { className: "text-xs mt-1" }, item.label)
-        ))
+    return (
+        <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto h-16 bg-white border-t border-gray-200 flex justify-around items-center shadow-top z-10">
+            {navItems.map(item => (
+                <button
+                    key={item.screen}
+                    onClick={() => setActiveScreen(item.screen)}
+                    className={`flex flex-col items-center justify-center w-full transition-colors ${activeScreen === item.screen ? 'text-verde-esperanca' : 'text-gray-500'} hover:text-verde-esperanca`}
+                >
+                    <span className="text-2xl" role="img" aria-label={item.label}>{item.icon}</span>
+                    <span className="text-xs mt-1">{item.label}</span>
+                </button>
+            ))}
+        </nav>
     );
 };
 
 const Dashboard = ({ user }) => {
-     return e('div', { className: "p-4 space-y-6" },
-        e('div', { className: "bg-white p-4 rounded-lg shadow-md" },
-            e('h2', { className: "text-lg font-bold text-cinza-escuro mb-2" }, "Meu Impacto Hoje"),
-            e('p', { className: "text-center text-xl font-bold text-cinza-escuro" }, `Você evitou ${user.stats.co2SavedKg}kg de CO2 hoje!`),
-            e('div', { className: "mt-4 space-y-2 text-sm text-center" },
-                e('p', null, e('strong', null, `${user.stats.waterSavedLiters}L`), ' de água poupada'),
-                e('p', null, e('strong', null, `${user.stats.recycledKg}kg`), ' de lixo reciclado')
-            )
-        ),
-        e('div', { className: "bg-azul-cerrado text-white p-6 rounded-lg shadow-lg flex items-center space-x-4" },
-            e('span', { className: "text-5xl", role: 'img', 'aria-label': 'Megafone' }, '📣'),
-            e('div', null,
-                e('h3', { className: "font-bold text-lg" }, "Desafio da Semana"),
-                e('p', { className: "mt-1" }, "Participe de um mutirão de limpeza e ganhe 100 EcoMoedas!"),
-                e('button', { className: "mt-3 bg-white text-azul-cerrado font-bold py-1 px-4 rounded-full text-sm hover:bg-gray-100" }, "Ver Detalhes")
-            )
-        ),
-        e('div', { className: "bg-white p-4 rounded-lg shadow-md" },
-            e('h2', { className: "text-lg font-bold text-cinza-escuro mb-4" }, "Notificações da Vizinhança"),
-            e('div', { className: "space-y-3" },
-                e('p', { className: "text-sm text-cinza-texto" }, e('span', { className: "font-semibold text-cinza-escuro" }, "♻️ Maria"), " reciclou 5kg de plástico!"),
-                e('p', { className: "text-sm text-cinza-texto" }, e('span', { className: "font-semibold text-cinza-escuro" }, "✅ João"), " participou do mutirão de limpeza."),
-                e('p', { className: "text-sm text-cinza-texto" }, e('span', { className: "font-semibold text-cinza-escuro" }, "💧 Carlos"), " reportou um vazamento de água.")
-            )
-        )
+     return (
+        <div className="p-4 space-y-6">
+            <div className="bg-white p-4 rounded-lg shadow-md">
+                <h2 className="text-lg font-bold text-cinza-escuro mb-2">Meu Impacto Hoje</h2>
+                <p className="text-center text-xl font-bold text-cinza-escuro">Você evitou {user.stats.co2SavedKg}kg de CO2 hoje!</p>
+                <div className="mt-4 space-y-2 text-sm text-center">
+                    <p><strong>{user.stats.waterSavedLiters}L</strong> de água poupada</p>
+                    <p><strong>{user.stats.recycledKg}kg</strong> de lixo reciclado</p>
+                </div>
+            </div>
+            <div className="bg-azul-cerrado text-white p-6 rounded-lg shadow-lg flex items-center space-x-4">
+                <span className="text-5xl" role='img' aria-label='Megafone'>📣</span>
+                <div>
+                    <h3 className="font-bold text-lg">Desafio da Semana</h3>
+                    <p className="mt-1">Participe de um mutirão de limpeza e ganhe 100 EcoMoedas!</p>
+                    <button className="mt-3 bg-white text-azul-cerrado font-bold py-1 px-4 rounded-full text-sm hover:bg-gray-100">Ver Detalhes</button>
+                </div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-md">
+                <h2 className="text-lg font-bold text-cinza-escuro mb-4">Notificações da Vizinhança</h2>
+                <div className="space-y-3">
+                    <p className="text-sm text-cinza-texto"><span className="font-semibold text-cinza-escuro">♻️ Maria</span> reciclou 5kg de plástico!</p>
+                    <p className="text-sm text-cinza-texto"><span className="font-semibold text-cinza-escuro">✅ João</span> participou do mutirão de limpeza.</p>
+                    <p className="text-sm text-cinza-texto"><span className="font-semibold text-cinza-escuro">💧 Carlos</span> reportou um vazamento de água.</p>
+                </div>
+            </div>
+        </div>
     );
 };
 
@@ -277,134 +320,298 @@ const ActionMap = () => {
             case MapPointType.Alert: return '#ef4444';
             default: return '#6b7280';
         }
-    }
+    };
 
-    return e('div', { className: "relative h-full w-full flex flex-col" },
-        // Filters
-        e('div', { className: "p-2 bg-white shadow-sm overflow-x-auto" },
-            e('div', { className: "flex space-x-2" },
-                Object.values(MapPointType).map(type => e('button', {
-                    key: type,
-                    onClick: () => setActiveFilter(type),
-                    className: `px-3 py-1 text-sm font-semibold rounded-full whitespace-nowrap transition-colors ${activeFilter === type ? 'bg-verde-esperanca text-white' : 'bg-gray-200 text-gray-700'}`
-                }, type.split(' ')[1]))
-            )
-        ),
-        // Map Area
-        e('div', {
-            className: "flex-grow relative overflow-hidden",
-            style: {
-                backgroundColor: '#f0f4f8',
-                backgroundImage: `linear-gradient(rgba(0, 128, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 128, 0, 0.1) 1px, transparent 1px)`,
-                backgroundSize: '25px 25px',
-            }
-        },
-            filteredPoints.map(point => e('button', {
-                key: point.id,
-                onClick: () => setSelectedPoint(point),
-                className: "absolute transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-xl hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-azul-cerrado",
-                style: { top: point.position.top, left: point.position.left, border: `3px solid ${getPinColor(point.type)}` },
-                'aria-label': `Ver detalhes de ${point.name}`
-            }, e('span', { className: "text-2xl", role: "img", "aria-hidden": "true" }, point.type.split(' ')[0])))
-        ),
-        // Selected Point Card
-        selectedPoint && e('div', { className: "absolute bottom-0 left-0 right-0 bg-white p-4 rounded-t-2xl shadow-lg z-20" },
-            e('div', { className: "flex justify-between items-start" },
-                e('div', null,
-                    e('h3', { className: "text-lg font-bold text-cinza-escuro" }, selectedPoint.name),
-                    e('p', { className: "text-sm text-cinza-texto mt-1" }, selectedPoint.details)
-                ),
-                e('button', { onClick: () => setSelectedPoint(null), className: "text-gray-500 hover:text-gray-800" }, '✖️')
-            ),
-            e('div', { className: "flex space-x-2 mt-4 text-sm" },
-                e('button', { className: "flex-1 bg-azul-cerrado text-white py-2 px-3 rounded-lg flex items-center justify-center space-x-2" }, e('span', null, '🗺️'), e('span', null, 'Como Chegar')),
-                e('button', { className: "flex-1 bg-red-500 text-white py-2 px-3 rounded-lg flex items-center justify-center space-x-2" }, e('span', null, '⚠️'), e('span', null, 'Reportar Problema'))
-            )
-        )
+    return (
+        <div className="relative h-full w-full flex flex-col">
+            <div className="p-2 bg-white shadow-sm overflow-x-auto">
+                <div className="flex space-x-2">
+                    {Object.values(MapPointType).map(type => (
+                        <button
+                            key={type}
+                            onClick={() => setActiveFilter(type === activeFilter ? null : type)}
+                            className={`px-3 py-1 text-sm font-semibold rounded-full whitespace-nowrap transition-colors ${activeFilter === type ? 'bg-verde-esperanca text-white' : 'bg-gray-200 text-gray-700'}`}
+                        >{type.split(' ')[1]}</button>
+                    ))}
+                </div>
+            </div>
+            <div
+                className="flex-grow relative overflow-hidden"
+                style={{
+                    backgroundColor: '#f0f4f8',
+                    backgroundImage: `linear-gradient(rgba(0, 128, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 128, 0, 0.1) 1px, transparent 1px)`,
+                    backgroundSize: '25px 25px',
+                }}
+            >
+                {filteredPoints.map(point => (
+                    <button
+                        key={point.id}
+                        onClick={() => setSelectedPoint(point)}
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-xl hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-azul-cerrado"
+                        style={{ top: point.position.top, left: point.position.left, border: `3px solid ${getPinColor(point.type)}` }}
+                        aria-label={`Ver detalhes de ${point.name}`}
+                    >
+                        <span className="text-2xl" role="img" aria-hidden="true">{point.type.split(' ')[0]}</span>
+                    </button>
+                ))}
+            </div>
+            {selectedPoint && (
+                <div className="absolute bottom-0 left-0 right-0 bg-white p-4 rounded-t-2xl shadow-lg z-20 transition-transform duration-300 ease-in-out transform translate-y-0">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h3 className="text-lg font-bold text-cinza-escuro">{selectedPoint.name}</h3>
+                            <p className="text-sm text-cinza-texto mt-1">{selectedPoint.details}</p>
+                        </div>
+                        <button onClick={() => setSelectedPoint(null)} className="text-gray-500 hover:text-gray-800 text-2xl">×</button>
+                    </div>
+                    <div className="flex space-x-2 mt-4 text-sm">
+                        <button className="flex-1 bg-azul-cerrado text-white py-2 px-3 rounded-lg flex items-center justify-center space-x-2"><span>🗺️</span> <span>Como Chegar</span></button>
+                        <button className="flex-1 bg-red-500 text-white py-2 px-3 rounded-lg flex items-center justify-center space-x-2"><span>⚠️</span> <span>Reportar Problema</span></button>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 
 const Challenges = () => {
-    return e('div', { className: "p-4 space-y-4" },
-        e('h2', { className: "text-xl font-bold text-cinza-escuro" }, "Desafios e Ações"),
-        MOCK_CHALLENGES.map(challenge => e('div', { key: challenge.id, className: `p-4 rounded-lg shadow-md border-l-4 ${challenge.isCompleted ? 'bg-gray-100 border-gray-300' : 'bg-white border-verde-esperanca'}` },
-            e('div', { className: "flex justify-between items-start" },
-                e('div', null,
-                    e('h3', { className: `font-bold ${challenge.isCompleted ? 'text-gray-500 line-through' : 'text-cinza-escuro'}` }, challenge.title),
-                    e('p', { className: "text-sm text-cinza-texto mt-1" }, challenge.description),
-                    e('div', { className: `mt-2 text-xs font-semibold px-2 py-0.5 rounded-full inline-block ${PILLAR_BG_COLORS[challenge.pillar]} ${PILLAR_COLORS[challenge.pillar]}` }, challenge.pillar)
-                ),
-                e('div', { className: "flex flex-col items-end space-y-1 ml-2" },
-                    challenge.isCompleted ? e('span', { className: "text-2xl" }, '✅') : e('button', { className: "bg-verde-esperanca text-white rounded-full p-2" }, e('span', { className: "text-xl" }, '➕')),
-                    e('span', { className: "text-sm font-bold text-amarelo-sol" }, `+${challenge.ecoCoins}`)
-                )
-            )
-        ))
+    return (
+        <div className="p-4 space-y-4">
+            <h2 className="text-xl font-bold text-cinza-escuro">Desafios e Ações</h2>
+            {MOCK_CHALLENGES.map(challenge => (
+                <div key={challenge.id} className={`p-4 rounded-lg shadow-md border-l-4 ${challenge.isCompleted ? 'bg-gray-100 border-gray-300' : 'bg-white border-verde-esperanca'}`}>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h3 className={`font-bold ${challenge.isCompleted ? 'text-gray-500 line-through' : 'text-cinza-escuro'}`}>{challenge.title}</h3>
+                            <p className="text-sm text-cinza-texto mt-1">{challenge.description}</p>
+                            <div className={`mt-2 text-xs font-semibold px-2 py-0.5 rounded-full inline-block ${PILLAR_BG_COLORS[challenge.pillar]} ${PILLAR_COLORS[challenge.pillar]}`}>{challenge.pillar}</div>
+                        </div>
+                        <div className="flex flex-col items-end space-y-1 ml-2">
+                            {challenge.isCompleted ? <span className="text-2xl">✅</span> : <button className="bg-verde-esperanca text-white rounded-full p-2"><span className="text-xl">➕</span></button>}
+                            <span className="text-sm font-bold text-amarelo-sol">+{challenge.ecoCoins}</span>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
     );
 };
 
 const Community = () => {
-    return e('div', { className: "p-4" },
-        e('h2', { className: "text-xl font-bold text-cinza-escuro mb-4" }, "Comunidade"),
-        e('div', { className: "space-y-4" },
-            e('h3', { className: "font-bold text-lg text-azul-cerrado" }, "Mutirões Ativos"),
-            MOCK_MUTIROES.map(mutirao => e('div', { key: mutirao.id, className: "bg-white p-4 rounded-lg shadow-md" },
-                e('h4', { className: "font-bold text-azul-cerrado" }, mutirao.title),
-                e('p', { className: "text-sm text-cinza-texto mt-1" }, mutirao.date),
-                e('p', { className: "mt-2 text-cinza-escuro" }, mutirao.description),
-                e('button', { className: "mt-4 bg-verde-esperanca text-white py-2 px-4 rounded-lg text-sm font-bold" }, "Vou Participar!")
-            )),
-            e('h3', { className: "font-bold text-lg text-azul-cerrado mt-6" }, "Fórum do Bairro"),
-            MOCK_COMMUNITY_POSTS.map(post => e('div', { key: post.id, className: "bg-white p-4 rounded-lg shadow-md" },
-                e('div', { className: "flex items-start space-x-3" },
-                    e('img', { src: post.authorAvatar, className: "w-10 h-10 rounded-full" }),
-                    e('div', null, e('p', { className: "font-bold text-cinza-escuro" }, post.author))
-                ),
-                e('p', { className: "mt-3 text-cinza-escuro" }, post.content)
-            ))
-        )
+    return (
+        <div className="p-4">
+            <h2 className="text-xl font-bold text-cinza-escuro mb-4">Comunidade</h2>
+            <div className="space-y-6">
+                
+                <div>
+                  <h3 className="font-bold text-lg text-azul-cerrado mb-3">Troca & Doação</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                      {MOCK_DONATIONS.map(item => (
+                        <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                          <img src={item.imageUrl} alt={item.title} className="w-full h-24 object-cover" />
+                          <div className="p-3">
+                            <h4 className="font-bold text-sm text-cinza-escuro truncate">{item.title}</h4>
+                            <p className="text-xs text-cinza-texto">Doado por {item.author}</p>
+                            <button className="w-full mt-3 bg-verde-esperanca text-white py-1 px-2 rounded text-xs font-bold">Tenho Interesse</button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                <div>
+                    <h3 className="font-bold text-lg text-azul-cerrado mb-3">Mutirões Ativos</h3>
+                    {MOCK_MUTIROES.map(mutirao => (
+                        <div key={mutirao.id} className="bg-white p-4 rounded-lg shadow-md mb-3">
+                            <h4 className="font-bold text-cinza-escuro">{mutirao.title}</h4>
+                            <p className="text-sm text-cinza-texto mt-1">{mutirao.date}</p>
+                            <p className="mt-2 text-cinza-escuro text-sm">{mutirao.description}</p>
+                            <button className="mt-4 bg-azul-cerrado text-white py-2 px-4 rounded-lg text-sm font-bold">Vou Participar!</button>
+                        </div>
+                    ))}
+                </div>
+
+                <div>
+                    <h3 className="font-bold text-lg text-azul-cerrado mb-3">Fórum do Bairro</h3>
+                    {MOCK_COMMUNITY_POSTS.map(post => (
+                        <div key={post.id} className="bg-white p-4 rounded-lg shadow-md mb-3">
+                            <div className="flex items-start space-x-3">
+                                <img src={post.authorAvatar} className="w-10 h-10 rounded-full" />
+                                <div>
+                                    <p className="font-bold text-cinza-escuro">{post.author}</p>
+                                    <p className="text-xs text-cinza-texto">{post.timestamp}</p>
+                                </div>
+                            </div>
+                            <p className="mt-3 text-cinza-escuro">{post.content}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
     );
 };
 
 const Profile = ({ user }) => {
-    return e('div', { className: "p-4 space-y-6" },
-        e('div', { className: "text-center" },
-            e('img', { src: user.avatarUrl, className: "w-24 h-24 rounded-full border-4 border-verde-esperanca mx-auto" }),
-            e('h2', { className: "text-xl font-bold mt-2 text-cinza-escuro" }, user.name),
-            e('p', { className: "text-cinza-texto" }, user.ecoName)
-        ),
-        e('div', { className: "bg-white p-4 rounded-lg shadow-md" },
-            e('h3', { className: "font-bold text-cinza-escuro mb-3" }, "Minhas Estatísticas"),
-            e('div', { className: "grid grid-cols-3 gap-4 text-center" },
-                e('div', null, e('span', { className: "text-4xl" }, '💨'), e('p', null, `${user.stats.co2SavedKg}kg`), e('p', { className: "text-xs" }, "CO2 evitado")),
-                e('div', null, e('span', { className: "text-4xl" }, '💧'), e('p', null, `${user.stats.waterSavedLiters}L`), e('p', { className: "text-xs" }, "Água poupada")),
-                e('div', null, e('span', { className: "text-4xl" }, '♻️'), e('p', null, `${user.stats.recycledKg}kg`), e('p', { className: "text-xs" }, "Lixo reciclado"))
-            )
-        ),
-        e('div', { className: "bg-white p-4 rounded-lg shadow-md" },
-            e('h3', { className: "font-bold text-cinza-escuro mb-3" }, "Minhas Medalhas"),
-            e('div', { className: "flex space-x-4 overflow-x-auto pb-2" },
-                user.badges.map(badge => e('div', { key: badge, className: "text-center flex-shrink-0 w-24" },
-                    e('div', { className: "bg-yellow-100 text-yellow-500 text-4xl w-16 h-16 rounded-full flex items-center justify-center mx-auto" }, '🏆'),
-                    e('p', { className: "text-xs mt-1 text-cinza-texto" }, badge)
-                ))
-            )
-        ),
-        e('div', { className: "bg-white p-4 rounded-lg shadow-md" },
-            e('h3', { className: "font-bold text-cinza-escuro mb-3" }, "EcoLoja"),
-             e('div', { className: "space-y-3" },
-                e('div', { className: "flex items-center justify-between" }, e('span', null, '🛍️ 10% de desconto na Padaria'), e('button', { className: "bg-amarelo-sol text-white text-xs font-bold py-1 px-3 rounded-full" }, "500 🪙")),
-                e('div', { className: "flex items-center justify-between" }, e('span', null, '🌳 Plantar 1 árvore'), e('button', { className: "bg-amarelo-sol text-white text-xs font-bold py-1 px-3 rounded-full" }, "1000 🪙"))
-             )
-        )
+    const journeySteps = [
+      { level: UserLevel.Semente, icon: '🌱' },
+      { level: UserLevel.Broto, icon: '🌿' },
+      { level: UserLevel.Arvore, icon: '🌳' },
+      { level: UserLevel.Floresta, icon: '🏞️' },
+    ];
+    const currentUserIndex = journeySteps.findIndex(step => step.level === user.level);
+
+    return (
+        <div className="p-4 space-y-6">
+            <div className="text-center">
+                <img src={user.avatarUrl} className="w-24 h-24 rounded-full border-4 border-verde-esperanca mx-auto" />
+                <h2 className="text-xl font-bold mt-2 text-cinza-escuro">{user.name}</h2>
+                <p className="text-cinza-texto">{user.ecoName}</p>
+            </div>
+
+            <div className="bg-white p-4 rounded-lg shadow-md">
+                <h3 className="font-bold text-cinza-escuro mb-4 text-center">Jornada do EcoVizinho</h3>
+                <div className="flex justify-between items-center relative">
+                    <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-200 -translate-y-1/2 -z-10"></div>
+                    <div className="absolute top-1/2 left-0 h-1 bg-verde-esperanca -translate-y-1/2 -z-10" style={{ width: `${(currentUserIndex / (journeySteps.length - 1)) * 100}%`}}></div>
+                    {journeySteps.map((step, index) => (
+                        <div key={step.level} className={`w-12 h-12 rounded-full flex items-center justify-center text-3xl bg-white border-2 transition-all duration-300 ${index <= currentUserIndex ? 'border-verde-esperanca' : 'border-gray-200'} ${index === currentUserIndex ? 'journey-step-active' : ''}`}>
+                            {step.icon}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-lg shadow-md">
+                <h3 className="font-bold text-cinza-escuro mb-3">Minhas Estatísticas</h3>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                    <div><span className="text-4xl">💨</span><p>{user.stats.co2SavedKg}kg</p><p className="text-xs">CO2 evitado</p></div>
+                    <div><span className="text-4xl">💧</span><p>{user.stats.waterSavedLiters}L</p><p className="text-xs">Água poupada</p></div>
+                    <div><span className="text-4xl">♻️</span><p>{user.stats.recycledKg}kg</p><p className="text-xs">Lixo reciclado</p></div>
+                </div>
+            </div>
+            
+            <div className="bg-white p-4 rounded-lg shadow-md">
+                <h3 className="font-bold text-cinza-escuro mb-3">Minhas Medalhas</h3>
+                <div className="flex space-x-4 overflow-x-auto pb-2">
+                    {user.badges.map(badge => (
+                        <div key={badge} className="text-center flex-shrink-0 w-24">
+                            <div className="bg-yellow-100 text-yellow-500 text-4xl w-16 h-16 rounded-full flex items-center justify-center mx-auto">🏆</div>
+                            <p className="text-xs mt-1 text-cinza-texto">{badge}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-lg shadow-md">
+                <h3 className="font-bold text-cinza-escuro mb-3">EcoLoja</h3>
+                 <div className="space-y-3">
+                    <div className="flex items-center justify-between"><span className="text-sm">🛍️ 10% de desconto na Padaria</span><button className="bg-amarelo-sol text-white text-xs font-bold py-1 px-3 rounded-full">500 🪙</button></div>
+                    <div className="flex items-center justify-between"><span className="text-sm">🌳 Plantar 1 árvore</span><button className="bg-amarelo-sol text-white text-xs font-bold py-1 px-3 rounded-full">1000 🪙</button></div>
+                 </div>
+            </div>
+        </div>
     );
 };
 
+
+const EcoAssistant = ({ onClose }) => {
+    const [messages, setMessages] = React.useState([
+        { from: 'model', text: 'Olá! Sou seu EcoAssistente. Como posso ajudar você a ser mais sustentável hoje?' }
+    ]);
+    const [input, setInput] = React.useState('');
+    const [isLoading, setIsLoading] = React.useState(false);
+    const chatEndRef = React.useRef(null);
+
+    React.useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    const handleSend = async () => {
+        if (!input.trim() || isLoading) return;
+        const userMessage = { from: 'user', text: input };
+        setMessages(prev => [...prev, userMessage]);
+        setInput('');
+        setIsLoading(true);
+
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [{ text: input }],
+                    }
+                ],
+                config: {
+                    systemInstruction: 'Você é o EcoAssistente, um chatbot amigável e especialista em sustentabilidade para o aplicativo EcoVizinhança. Suas respostas devem ser curtas, diretas, úteis e sempre em português do Brasil. Use emojis para deixar a conversa mais leve. Foque em dar dicas práticas que um morador de um bairro pode aplicar no dia a dia.',
+                }
+            });
+            const modelMessage = { from: 'model', text: response.text };
+            setMessages(prev => [...prev, modelMessage]);
+        } catch (error) {
+            console.error("Erro na API Gemini:", error);
+            const errorMessage = { from: 'model', text: '😕 Desculpe, não consegui processar sua pergunta. Tente novamente mais tarde.' };
+            setMessages(prev => [...prev, errorMessage]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
+            <div className="bg-white w-full max-w-lg h-4/5 rounded-t-2xl flex flex-col shadow-lg">
+                <header className="flex items-center justify-between p-4 border-b">
+                    <h2 className="font-bold text-lg text-cinza-escuro">✨ EcoAssistente</h2>
+                    <button onClick={onClose} className="text-2xl text-gray-500">&times;</button>
+                </header>
+                <main className="flex-1 p-4 overflow-y-auto space-y-4">
+                    {messages.map((msg, index) => (
+                        <div key={index} className={`flex ${msg.from === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`p-3 max-w-xs md:max-w-md ${msg.from === 'user' ? 'chat-bubble-user' : 'chat-bubble-model'}`}>
+                                {msg.text}
+                            </div>
+                        </div>
+                    ))}
+                    {isLoading && (
+                        <div className="flex justify-start">
+                           <div className="p-3 chat-bubble-model">
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
+                                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                                </div>
+                           </div>
+                        </div>
+                    )}
+                    <div ref={chatEndRef} />
+                </main>
+                <footer className="p-4 border-t bg-white">
+                    <div className="flex items-center space-x-2">
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={e => setInput(e.target.value)}
+                            onKeyPress={e => e.key === 'Enter' && handleSend()}
+                            placeholder="Pergunte algo..."
+                            className="flex-1 p-2 border rounded-full focus:ring-2 focus:ring-verde-esperanca"
+                            disabled={isLoading}
+                        />
+                        <button onClick={handleSend} disabled={isLoading || !input.trim()} className="bg-verde-esperanca text-white w-10 h-10 rounded-full flex items-center justify-center disabled:bg-gray-400">
+                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086L2.279 16.76a.75.75 0 00.95.826l16-5.333a.75.75 0 000-1.418l-16-5.333z" /></svg>
+                        </button>
+                    </div>
+                </footer>
+            </div>
+        </div>
+    );
+};
 
 const App = () => {
     const [isAuthenticated, setIsAuthenticated] = React.useState(false);
     const [user, setUser] = React.useState(null);
     const [activeScreen, setActiveScreen] = React.useState(Screen.Dashboard);
+    const [isAssistantOpen, setIsAssistantOpen] = React.useState(false);
 
     const handleLogin = (name, email, cep, ecoName) => {
         setUser({ ...MOCK_USER, name, email, cep, ecoName });
@@ -414,32 +621,41 @@ const App = () => {
     const renderScreen = () => {
         if (!user) return null;
         switch (activeScreen) {
-            case Screen.Dashboard: return e(Dashboard, { user });
-            case Screen.ActionMap: return e(ActionMap);
-            case Screen.Challenges: return e(Challenges);
-            case Screen.Community: return e(Community);
-            case Screen.Profile: return e(Profile, { user });
-            default: return e(Dashboard, { user });
+            case Screen.Dashboard: return <Dashboard user={user} />;
+            case Screen.ActionMap: return <ActionMap />;
+            case Screen.Challenges: return <Challenges />;
+            case Screen.Community: return <Community />;
+            case Screen.Profile: return <Profile user={user} />;
+            default: return <Dashboard user={user} />;
         }
     };
 
     if (!isAuthenticated) {
-        return e(Onboarding, { onLogin: handleLogin });
+        return <Onboarding onLogin={handleLogin} />;
     }
 
-    return e('div', { className: "bg-cinza-claro font-sans h-screen w-full flex flex-col max-w-lg mx-auto shadow-2xl" },
-        e(Header, { user }),
-        e('main', { className: "flex-grow overflow-y-auto pb-20 bg-gray-50" },
-            renderScreen()
-        ),
-        e(BottomNav, { activeScreen, setActiveScreen })
+    return (
+        <div className="bg-cinza-claro font-sans h-screen w-full flex flex-col max-w-lg mx-auto shadow-2xl relative">
+            <Header user={user} />
+            <main className="flex-grow overflow-y-auto pb-20 bg-gray-50">
+                {renderScreen()}
+            </main>
+            <BottomNav activeScreen={activeScreen} setActiveScreen={setActiveScreen} />
+            <button 
+              onClick={() => setIsAssistantOpen(true)}
+              className="absolute bottom-20 right-4 bg-azul-cerrado text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg text-3xl hover:bg-blue-600 transition-colors"
+              aria-label="Abrir EcoAssistente"
+            >
+              ✨
+            </button>
+            {isAssistantOpen && <EcoAssistant onClose={() => setIsAssistantOpen(false)} />}
+        </div>
     );
 };
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(e(App));
+root.render(<App />);
 
-// --- Fim do Código do Aplicativo ---
     </script>
 </body>
 </html>
