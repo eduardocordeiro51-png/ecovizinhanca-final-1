@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EcoVizinhança</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'verde-esperanca': '#28A745',
+              'azul-cerrado': '#1E88E5',
+              'amarelo-sol': '#FFC107',
+              'cinza-claro': '#F8F9FA',
+              'cinza-texto': '#6c757d',
+              'cinza-escuro': '#343a40',
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/javascript">
+// --- Início do Código do Aplicativo Consolidado ---
+
+// --- types.js ---
+const Screen = {
+  Onboarding: 'ONBOARDING',
+  Dashboard: 'DASHBOARD',
+  ActionMap: 'ACTION_MAP',
+  Challenges: 'CHALLENGES',
+  Community: 'COMMUNITY',
+  Profile: 'PROFILE',
+};
+
+const Pillar = {
+  EnvironmentalManagement: 'Gestão Ambiental',
+  EnergyEfficiency: 'Energia e Eficiência',
+  UrbanPlanning: 'Planejamento Urbano',
+  SustainableEconomy: 'Economia Sustentável',
+  SocialGovernance: 'Social e Governança',
+};
+
+const MapPointType = {
+  Recycling: '♻️ Gestão de Resíduos',
+  GreenArea: '🌳 Áreas Verdes',
+  Energy: '🔋 Energia e Mobilidade',
+  LocalEconomy: '🛒 Economia Local',
+  Alert: '⚠️ Alertas',
+};
+
+// --- constants.js ---
+const MOCK_USER = {
+  name: 'Ana Silva',
+  ecoName: '@AnaDaHorta',
+  email: 'ana.silva@email.com',
+  cep: '01000-000',
+  level: 'Árvore',
+  ecoCoins: 1250,
+  xp: 450,
+  xpToNextLevel: 1000,
+  avatarUrl: 'https://picsum.photos/seed/ecovizinha1/100/100',
+  stats: {
+    co2SavedKg: 15,
+    waterSavedLiters: 300,
+    recycledKg: 25,
+  },
+  badges: ['Mestre da Reciclagem', 'Líder Comunitário', 'Amigo das Árvores'],
+};
+
+const MOCK_CHALLENGES = [
+  { id: 'c1', title: 'Faça compostagem por uma semana', description: 'Transforme seus resíduos orgânicos em adubo.', pillar: Pillar.EnvironmentalManagement, ecoCoins: 50, isCompleted: true },
+  { id: 'c2', title: 'Descarte 1 litro de óleo de cozinha', description: 'Leve seu óleo usado a um ponto de coleta.', pillar: Pillar.EnvironmentalManagement, ecoCoins: 30, isCompleted: false },
+  { id: 'c3', title: 'Tome um banho de 5 min por 3 dias', description: 'Economize água e energia.', pillar: Pillar.EnergyEfficiency, ecoCoins: 40, isCompleted: false },
+  { id: 'c4', title: 'Vá de bike ao trabalho 1x na semana', description: 'Reduza sua pegada de carbono e exercite-se.', pillar: Pillar.UrbanPlanning, ecoCoins: 60, isCompleted: true },
+  { id: 'c5', title: 'Compre em 1 comércio local esta semana', description: 'Apoie a economia do seu bairro.', pillar: Pillar.SustainableEconomy, ecoCoins: 35, isCompleted: false },
+  { id: 'c6', title: 'Participe de um mutirão de limpeza', description: 'Ajude a deixar seu bairro mais bonito.', pillar: Pillar.SocialGovernance, ecoCoins: 100, isCompleted: false },
+  { id: 'c7', title: 'Desligue os aparelhos em standby', description: 'Economize energia desligando completamente os eletrônicos.', pillar: Pillar.EnergyEfficiency, ecoCoins: 25, isCompleted: true },
+];
+
+const MOCK_MAP_POINTS = [
+  { id: 'p1', name: 'Ponto de Coleta de Eletrônicos', type: MapPointType.Recycling, position: { top: '20%', left: '30%' }, details: 'Coleta de pilhas, baterias e pequenos eletrônicos.' },
+  { id: 'p2', name: 'Horta Comunitária da Praça', type: MapPointType.GreenArea, position: { top: '40%', left: '60%' }, details: 'Participe do cultivo de hortaliças para a comunidade.' },
+  { id: 'p3', name: 'Bicicletário Estação Central', type: MapPointType.Energy, position: { top: '75%', left: '25%' }, details: 'Estacione sua bicicleta com segurança.' },
+  { id: 'p4', name: 'Feira Orgânica Semanal', type: MapPointType.LocalEconomy, position: { top: '50%', left: '15%' }, details: 'Produtos frescos e locais todos os sábados.' },
+  { id: 'p5', name: 'Alerta: Descarte Irregular', type: MapPointType.Alert, position: { top: '60%', left: '80%' }, details: 'Acúmulo de entulho em terreno baldio. Reportado há 2 dias.' },
+];
+
+const MOCK_COMMUNITY_POSTS = [
+    { id: 'post1', author: 'Carlos Pereira', authorAvatar: 'https://picsum.photos/seed/ecovizinho2/40/40', content: 'Pessoal, alguém tem dicas de como começar uma composteira em apartamento?', timestamp: '2h atrás' },
+    { id: 'post2', author: 'Juliana Costa', authorAvatar: 'https://picsum.photos/seed/ecovizinha3/40/40', content: 'A feira orgânica esse fim de semana estava ótima! Recomendo as geleias da barraca "Sabor da Terra".', timestamp: '5h atrás' },
+    { id: 'post3', author: 'Marcos Lima', authorAvatar: 'https://picsum.photos/seed/ecovizinho4/40/40', content: 'Notei que a iluminação da Praça das Flores está com algumas lâmpadas queimadas. Alguém sabe como reportar à prefeitura?', timestamp: '1 dia atrás' },
+];
+
+const MOCK_MUTIROES = [
+    { id: 'm1', title: 'Mutirão de Limpeza do Córrego Limpo', date: 'Sábado, 28/09, 9h', location: 'Início na Ponte da Av. Principal', participants: 12, description: 'Vamos juntos remover o lixo das margens do nosso córrego. Traga luvas e sacos de lixo!' },
+    { id: 'm2', title: 'Plantio de Árvores na Praça Central', date: 'Domingo, 29/09, 10h', location: 'Praça Central', participants: 8, description: 'Recebemos 20 mudas de ipês e queremos deixar nossa praça mais verde. Venha ajudar!' },
+];
+
+const PILLAR_COLORS = {
+    [Pillar.EnvironmentalManagement]: 'text-green-600',
+    [Pillar.EnergyEfficiency]: 'text-blue-600',
+    [Pillar.UrbanPlanning]: 'text-yellow-600',
+    [Pillar.SustainableEconomy]: 'text-orange-600',
+    [Pillar.SocialGovernance]: 'text-purple-600',
+};
+
+const PILLAR_BG_COLORS = {
+    [Pillar.EnvironmentalManagement]: 'bg-green-100',
+    [Pillar.EnergyEfficiency]: 'bg-blue-100',
+    [Pillar.UrbanPlanning]: 'bg-yellow-100',
+    [Pillar.SustainableEconomy]: 'bg-orange-100',
+    [Pillar.SocialGovernance]: 'bg-purple-100',
+};
+
+
+// --- Componentes ---
+
+const e = React.createElement;
+
+const Onboarding = ({ onLogin }) => {
+    const [step, setStep] = React.useState(0);
+    const [name, setName] = React.useState('');
+    const [email, setEmail] = React.useState('');
+    const [cep, setCep] = React.useState('');
+    const [ecoName, setEcoName] = React.useState('');
+
+    const onboardingSteps = [
+        { icon: '👥', title: "Conecte-se com sua comunidade e seu ambiente.", text: "Faça parte de uma rede de vizinhos engajados na construção de um futuro mais sustentável." },
+        { icon: '🌿', title: "Descubra ações práticas para um bairro mais verde e limpo.", text: "Encontre desafios, participe de mutirões e aprenda como suas pequenas atitudes fazem uma grande diferença." },
+        { icon: '🎁', title: "Transforme suas atitudes em benefícios para todos.", text: "Ganhe EcoMoedas por suas ações e troque por recompensas em comércios locais parceiros." }
+    ];
+
+    const handleNext = () => setStep(step + 1);
+
+    const handleSubmit = (event) => {
+        event.preventDefault();
+        if (name && email && cep && ecoName) {
+            onLogin(name, email, cep, ecoName);
+        }
+    };
+    
+    if (step >= onboardingSteps.length) {
+        return e('div', { className: "p-8 h-screen flex flex-col justify-center" },
+            e('h2', { className: "text-2xl font-bold text-center text-cinza-escuro mb-6" }, "Crie sua conta EcoVizinho"),
+            e('form', { onSubmit: handleSubmit, className: "space-y-4" },
+                e('input', { type: "text", placeholder: "Seu nome completo", value: name, onChange: e => setName(e.target.value), className: "w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca", required: true }),
+                e('input', { type: "email", placeholder: "Seu melhor e-mail", value: email, onChange: e => setEmail(e.target.value), className: "w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca", required: true }),
+                e('input', { type: "text", placeholder: "CEP (para personalizar)", value: cep, onChange: e => setCep(e.target.value), className: "w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca", required: true }),
+                e('input', { type: "text", placeholder: "Seu Nome de EcoVizinho (ex: @JoaoDaRua)", value: ecoName, onChange: e => setEcoName(e.target.value), className: "w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca", required: true }),
+                e('button', { type: "submit", className: "w-full bg-verde-esperanca text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-colors" }, "Entrar na Comunidade")
+            )
+        );
+    }
+
+    const currentStep = onboardingSteps[step];
+    return e('div', { className: "bg-white h-screen flex flex-col justify-between" },
+        e('div', { className: "flex-grow flex flex-col items-center justify-center text-center p-8" },
+            e('span', { className: "text-6xl text-verde-esperanca mb-6", role: "img", "aria-label": "icon" }, currentStep.icon),
+            e('h2', { className: "text-2xl font-bold text-cinza-escuro mb-4" }, currentStep.title),
+            e('p', { className: "text-cinza-texto" }, currentStep.text)
+        ),
+        e('div', { className: "p-8" },
+            e('div', { className: "flex justify-center space-x-2 mb-4" },
+                onboardingSteps.map((_, index) => e('div', { key: index, className: `h-2 w-8 rounded-full ${step === index ? 'bg-verde-esperanca' : 'bg-gray-300'}` }))
+            ),
+            e('button', { onClick: handleNext, className: "w-full bg-verde-esperanca text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-colors" }, step === onboardingSteps.length - 1 ? 'Começar!' : 'Próximo')
+        )
+    );
+};
+
+const Header = ({ user }) => {
+    const progress = (user.xp / user.xpToNextLevel) * 100;
+    return e('header', { className: "bg-white shadow-md p-4 sticky top-0 z-10" },
+        e('div', { className: "flex justify-between items-center" },
+            e('div', { className: "flex items-center space-x-3" },
+                e('img', { src: user.avatarUrl, alt: "Avatar do usuário", className: "w-12 h-12 rounded-full border-2 border-verde-esperanca" }),
+                e('div', null,
+                    e('h1', { className: "font-bold text-cinza-escuro" }, user.name),
+                    e('p', { className: "text-sm text-cinza-texto" }, user.ecoName)
+                )
+            ),
+            e('div', { className: "flex items-center space-x-2 text-amarelo-sol font-bold" },
+                e('span', { role: "img", "aria-label": "EcoMoedas", className: "text-2xl" }, '🪙'),
+                e('span', { className: "text-lg" }, user.ecoCoins)
+            )
+        ),
+        e('div', { className: "mt-3" },
+            e('div', { className: "flex justify-between items-center text-sm mb-1" },
+                e('div', { className: "flex items-center space-x-1 font-semibold text-cinza-escuro" },
+                    e('span', { role: "img", "aria-label": "Nível", className: "text-lg" }, '🌳'),
+                    e('span', null, `Nível: ${user.level}`)
+                ),
+                e('span', { className: "text-cinza-texto" }, `${user.xp} / ${user.xpToNextLevel} XP`)
+            ),
+            e('div', { className: "w-full bg-gray-200 rounded-full h-2.5" },
+                e('div', { className: "bg-azul-cerrado h-2.5 rounded-full", style: { width: `${progress}%` } })
+            )
+        )
+    );
+};
+
+const BottomNav = ({ activeScreen, setActiveScreen }) => {
+    const navItems = [
+        { icon: '🏠', label: 'Início', screen: Screen.Dashboard },
+        { icon: '🗺️', label: 'Mapa', screen: Screen.ActionMap },
+        { icon: '🏆', label: 'Desafios', screen: Screen.Challenges },
+        { icon: '👥', label: 'Comunidade', screen: Screen.Community },
+        { icon: '👤', label: 'Perfil', screen: Screen.Profile },
+    ];
+    return e('nav', { className: "fixed bottom-0 left-0 right-0 max-w-lg mx-auto h-16 bg-white border-t border-gray-200 flex justify-around items-center shadow-top z-10" },
+        navItems.map(item => e('button', {
+            key: item.screen,
+            onClick: () => setActiveScreen(item.screen),
+            className: `flex flex-col items-center justify-center w-full transition-colors ${activeScreen === item.screen ? 'text-verde-esperanca' : 'text-gray-500'} hover:text-verde-esperanca`
+        },
+            e('span', { className: "text-2xl", role: "img", "aria-label": item.label }, item.icon),
+            e('span', { className: "text-xs mt-1" }, item.label)
+        ))
+    );
+};
+
+const Dashboard = ({ user }) => {
+     return e('div', { className: "p-4 space-y-6" },
+        e('div', { className: "bg-white p-4 rounded-lg shadow-md" },
+            e('h2', { className: "text-lg font-bold text-cinza-escuro mb-2" }, "Meu Impacto Hoje"),
+            e('p', { className: "text-center text-xl font-bold text-cinza-escuro" }, `Você evitou ${user.stats.co2SavedKg}kg de CO2 hoje!`),
+            e('div', { className: "mt-4 space-y-2 text-sm text-center" },
+                e('p', null, e('strong', null, `${user.stats.waterSavedLiters}L`), ' de água poupada'),
+                e('p', null, e('strong', null, `${user.stats.recycledKg}kg`), ' de lixo reciclado')
+            )
+        ),
+        e('div', { className: "bg-azul-cerrado text-white p-6 rounded-lg shadow-lg flex items-center space-x-4" },
+            e('span', { className: "text-5xl", role: 'img', 'aria-label': 'Megafone' }, '📣'),
+            e('div', null,
+                e('h3', { className: "font-bold text-lg" }, "Desafio da Semana"),
+                e('p', { className: "mt-1" }, "Participe de um mutirão de limpeza e ganhe 100 EcoMoedas!"),
+                e('button', { className: "mt-3 bg-white text-azul-cerrado font-bold py-1 px-4 rounded-full text-sm hover:bg-gray-100" }, "Ver Detalhes")
+            )
+        ),
+        e('div', { className: "bg-white p-4 rounded-lg shadow-md" },
+            e('h2', { className: "text-lg font-bold text-cinza-escuro mb-4" }, "Notificações da Vizinhança"),
+            e('div', { className: "space-y-3" },
+                e('p', { className: "text-sm text-cinza-texto" }, e('span', { className: "font-semibold text-cinza-escuro" }, "♻️ Maria"), " reciclou 5kg de plástico!"),
+                e('p', { className: "text-sm text-cinza-texto" }, e('span', { className: "font-semibold text-cinza-escuro" }, "✅ João"), " participou do mutirão de limpeza."),
+                e('p', { className: "text-sm text-cinza-texto" }, e('span', { className: "font-semibold text-cinza-escuro" }, "💧 Carlos"), " reportou um vazamento de água.")
+            )
+        )
+    );
+};
+
+const ActionMap = () => {
+    const [activeFilter, setActiveFilter] = React.useState(null);
+    const [selectedPoint, setSelectedPoint] = React.useState(null);
+
+    const filteredPoints = MOCK_MAP_POINTS.filter(point => activeFilter === null || point.type === activeFilter);
+    
+    const getPinColor = (type) => {
+        switch (type) {
+            case MapPointType.Recycling: return '#28A745';
+            case MapPointType.GreenArea: return '#16a34a';
+            case MapPointType.Energy: return '#1E88E5';
+            case MapPointType.LocalEconomy: return '#f97316';
+            case MapPointType.Alert: return '#ef4444';
+            default: return '#6b7280';
+        }
+    }
+
+    return e('div', { className: "relative h-full w-full flex flex-col" },
+        // Filters
+        e('div', { className: "p-2 bg-white shadow-sm overflow-x-auto" },
+            e('div', { className: "flex space-x-2" },
+                Object.values(MapPointType).map(type => e('button', {
+                    key: type,
+                    onClick: () => setActiveFilter(type),
+                    className: `px-3 py-1 text-sm font-semibold rounded-full whitespace-nowrap transition-colors ${activeFilter === type ? 'bg-verde-esperanca text-white' : 'bg-gray-200 text-gray-700'}`
+                }, type.split(' ')[1]))
+            )
+        ),
+        // Map Area
+        e('div', {
+            className: "flex-grow relative overflow-hidden",
+            style: {
+                backgroundColor: '#f0f4f8',
+                backgroundImage: `linear-gradient(rgba(0, 128, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 128, 0, 0.1) 1px, transparent 1px)`,
+                backgroundSize: '25px 25px',
+            }
+        },
+            filteredPoints.map(point => e('button', {
+                key: point.id,
+                onClick: () => setSelectedPoint(point),
+                className: "absolute transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-xl hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-azul-cerrado",
+                style: { top: point.position.top, left: point.position.left, border: `3px solid ${getPinColor(point.type)}` },
+                'aria-label': `Ver detalhes de ${point.name}`
+            }, e('span', { className: "text-2xl", role: "img", "aria-hidden": "true" }, point.type.split(' ')[0])))
+        ),
+        // Selected Point Card
+        selectedPoint && e('div', { className: "absolute bottom-0 left-0 right-0 bg-white p-4 rounded-t-2xl shadow-lg z-20" },
+            e('div', { className: "flex justify-between items-start" },
+                e('div', null,
+                    e('h3', { className: "text-lg font-bold text-cinza-escuro" }, selectedPoint.name),
+                    e('p', { className: "text-sm text-cinza-texto mt-1" }, selectedPoint.details)
+                ),
+                e('button', { onClick: () => setSelectedPoint(null), className: "text-gray-500 hover:text-gray-800" }, '✖️')
+            ),
+            e('div', { className: "flex space-x-2 mt-4 text-sm" },
+                e('button', { className: "flex-1 bg-azul-cerrado text-white py-2 px-3 rounded-lg flex items-center justify-center space-x-2" }, e('span', null, '🗺️'), e('span', null, 'Como Chegar')),
+                e('button', { className: "flex-1 bg-red-500 text-white py-2 px-3 rounded-lg flex items-center justify-center space-x-2" }, e('span', null, '⚠️'), e('span', null, 'Reportar Problema'))
+            )
+        )
+    );
+};
+
+const Challenges = () => {
+    return e('div', { className: "p-4 space-y-4" },
+        e('h2', { className: "text-xl font-bold text-cinza-escuro" }, "Desafios e Ações"),
+        MOCK_CHALLENGES.map(challenge => e('div', { key: challenge.id, className: `p-4 rounded-lg shadow-md border-l-4 ${challenge.isCompleted ? 'bg-gray-100 border-gray-300' : 'bg-white border-verde-esperanca'}` },
+            e('div', { className: "flex justify-between items-start" },
+                e('div', null,
+                    e('h3', { className: `font-bold ${challenge.isCompleted ? 'text-gray-500 line-through' : 'text-cinza-escuro'}` }, challenge.title),
+                    e('p', { className: "text-sm text-cinza-texto mt-1" }, challenge.description),
+                    e('div', { className: `mt-2 text-xs font-semibold px-2 py-0.5 rounded-full inline-block ${PILLAR_BG_COLORS[challenge.pillar]} ${PILLAR_COLORS[challenge.pillar]}` }, challenge.pillar)
+                ),
+                e('div', { className: "flex flex-col items-end space-y-1 ml-2" },
+                    challenge.isCompleted ? e('span', { className: "text-2xl" }, '✅') : e('button', { className: "bg-verde-esperanca text-white rounded-full p-2" }, e('span', { className: "text-xl" }, '➕')),
+                    e('span', { className: "text-sm font-bold text-amarelo-sol" }, `+${challenge.ecoCoins}`)
+                )
+            )
+        ))
+    );
+};
+
+const Community = () => {
+    return e('div', { className: "p-4" },
+        e('h2', { className: "text-xl font-bold text-cinza-escuro mb-4" }, "Comunidade"),
+        e('div', { className: "space-y-4" },
+            e('h3', { className: "font-bold text-lg text-azul-cerrado" }, "Mutirões Ativos"),
+            MOCK_MUTIROES.map(mutirao => e('div', { key: mutirao.id, className: "bg-white p-4 rounded-lg shadow-md" },
+                e('h4', { className: "font-bold text-azul-cerrado" }, mutirao.title),
+                e('p', { className: "text-sm text-cinza-texto mt-1" }, mutirao.date),
+                e('p', { className: "mt-2 text-cinza-escuro" }, mutirao.description),
+                e('button', { className: "mt-4 bg-verde-esperanca text-white py-2 px-4 rounded-lg text-sm font-bold" }, "Vou Participar!")
+            )),
+            e('h3', { className: "font-bold text-lg text-azul-cerrado mt-6" }, "Fórum do Bairro"),
+            MOCK_COMMUNITY_POSTS.map(post => e('div', { key: post.id, className: "bg-white p-4 rounded-lg shadow-md" },
+                e('div', { className: "flex items-start space-x-3" },
+                    e('img', { src: post.authorAvatar, className: "w-10 h-10 rounded-full" }),
+                    e('div', null, e('p', { className: "font-bold text-cinza-escuro" }, post.author))
+                ),
+                e('p', { className: "mt-3 text-cinza-escuro" }, post.content)
+            ))
+        )
+    );
+};
+
+const Profile = ({ user }) => {
+    return e('div', { className: "p-4 space-y-6" },
+        e('div', { className: "text-center" },
+            e('img', { src: user.avatarUrl, className: "w-24 h-24 rounded-full border-4 border-verde-esperanca mx-auto" }),
+            e('h2', { className: "text-xl font-bold mt-2 text-cinza-escuro" }, user.name),
+            e('p', { className: "text-cinza-texto" }, user.ecoName)
+        ),
+        e('div', { className: "bg-white p-4 rounded-lg shadow-md" },
+            e('h3', { className: "font-bold text-cinza-escuro mb-3" }, "Minhas Estatísticas"),
+            e('div', { className: "grid grid-cols-3 gap-4 text-center" },
+                e('div', null, e('span', { className: "text-4xl" }, '💨'), e('p', null, `${user.stats.co2SavedKg}kg`), e('p', { className: "text-xs" }, "CO2 evitado")),
+                e('div', null, e('span', { className: "text-4xl" }, '💧'), e('p', null, `${user.stats.waterSavedLiters}L`), e('p', { className: "text-xs" }, "Água poupada")),
+                e('div', null, e('span', { className: "text-4xl" }, '♻️'), e('p', null, `${user.stats.recycledKg}kg`), e('p', { className: "text-xs" }, "Lixo reciclado"))
+            )
+        ),
+        e('div', { className: "bg-white p-4 rounded-lg shadow-md" },
+            e('h3', { className: "font-bold text-cinza-escuro mb-3" }, "Minhas Medalhas"),
+            e('div', { className: "flex space-x-4 overflow-x-auto pb-2" },
+                user.badges.map(badge => e('div', { key: badge, className: "text-center flex-shrink-0 w-24" },
+                    e('div', { className: "bg-yellow-100 text-yellow-500 text-4xl w-16 h-16 rounded-full flex items-center justify-center mx-auto" }, '🏆'),
+                    e('p', { className: "text-xs mt-1 text-cinza-texto" }, badge)
+                ))
+            )
+        ),
+        e('div', { className: "bg-white p-4 rounded-lg shadow-md" },
+            e('h3', { className: "font-bold text-cinza-escuro mb-3" }, "EcoLoja"),
+             e('div', { className: "space-y-3" },
+                e('div', { className: "flex items-center justify-between" }, e('span', null, '🛍️ 10% de desconto na Padaria'), e('button', { className: "bg-amarelo-sol text-white text-xs font-bold py-1 px-3 rounded-full" }, "500 🪙")),
+                e('div', { className: "flex items-center justify-between" }, e('span', null, '🌳 Plantar 1 árvore'), e('button', { className: "bg-amarelo-sol text-white text-xs font-bold py-1 px-3 rounded-full" }, "1000 🪙"))
+             )
+        )
+    );
+};
+
+
+const App = () => {
+    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+    const [user, setUser] = React.useState(null);
+    const [activeScreen, setActiveScreen] = React.useState(Screen.Dashboard);
+
+    const handleLogin = (name, email, cep, ecoName) => {
+        setUser({ ...MOCK_USER, name, email, cep, ecoName });
+        setIsAuthenticated(true);
+    };
+
+    const renderScreen = () => {
+        if (!user) return null;
+        switch (activeScreen) {
+            case Screen.Dashboard: return e(Dashboard, { user });
+            case Screen.ActionMap: return e(ActionMap);
+            case Screen.Challenges: return e(Challenges);
+            case Screen.Community: return e(Community);
+            case Screen.Profile: return e(Profile, { user });
+            default: return e(Dashboard, { user });
+        }
+    };
+
+    if (!isAuthenticated) {
+        return e(Onboarding, { onLogin: handleLogin });
+    }
+
+    return e('div', { className: "bg-cinza-claro font-sans h-screen w-full flex flex-col max-w-lg mx-auto shadow-2xl" },
+        e(Header, { user }),
+        e('main', { className: "flex-grow overflow-y-auto pb-20 bg-gray-50" },
+            renderScreen()
+        ),
+        e(BottomNav, { activeScreen, setActiveScreen })
+    );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(e(App));
+
+// --- Fim do Código do Aplicativo ---
+    </script>
+</body>
+</html>
