@@ -30,9 +30,6 @@
         }
       }
     </script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
       .chat-bubble-user {
         background-color: #1E88E5;
@@ -52,632 +49,504 @@
 </head>
 <body class="bg-gray-200">
     <div id="root"></div>
+    <script type="module">
+        import React, { useState, useEffect, useRef } from "https://esm.run/react@18";
+        import ReactDOM from "https://esm.run/react-dom@18/client";
+        import { GoogleGenAI } from "https://esm.run/@google/genai";
 
-    <script type="text/babel" data-type="module">
-// --- Gemini API Import ---
-import { GoogleGenAI } from 'https://esm.run/@google/genai';
+        // --- TIPOS E CONSTANTES ---
+        const Screen = {
+          Onboarding: 'ONBOARDING',
+          Dashboard: 'DASHBOARD',
+          ActionMap: 'ACTION_MAP',
+          Challenges: 'CHALLENGES',
+          Community: 'COMMUNITY',
+          Profile: 'PROFILE',
+        };
 
-// --- types.js ---
-const Screen = {
-  Onboarding: 'ONBOARDING',
-  Dashboard: 'DASHBOARD',
-  ActionMap: 'ACTION_MAP',
-  Challenges: 'CHALLENGES',
-  Community: 'COMMUNITY',
-  Profile: 'PROFILE',
-};
+        const Pillar = {
+          EnvironmentalManagement: 'Gestão Ambiental',
+          EnergyEfficiency: 'Energia e Eficiência',
+          UrbanPlanning: 'Planejamento Urbano',
+          SustainableEconomy: 'Economia Sustentável',
+          SocialGovernance: 'Social e Governança',
+        };
 
-const Pillar = {
-  EnvironmentalManagement: 'Gestão Ambiental',
-  EnergyEfficiency: 'Energia e Eficiência',
-  UrbanPlanning: 'Planejamento Urbano',
-  SustainableEconomy: 'Economia Sustentável',
-  SocialGovernance: 'Social e Governança',
-};
+        const UserLevel = {
+            Semente: 'Semente',
+            Broto: 'Broto',
+            Arvore: 'Árvore',
+            Floresta: 'Floresta'
+        };
 
-const MapPointType = {
-  Recycling: '♻️ Gestão de Resíduos',
-  GreenArea: '🌳 Áreas Verdes',
-  Energy: '🔋 Energia e Mobilidade',
-  LocalEconomy: '🛒 Economia Local',
-  Alert: '⚠️ Alertas',
-};
+        const MOCK_USER = {
+          name: 'Ana Silva',
+          ecoName: '@AnaDaHorta',
+          email: 'ana.silva@email.com',
+          cep: '01000-000',
+          level: UserLevel.Arvore,
+          ecoCoins: 1250,
+          xp: 450,
+          xpToNextLevel: 1000,
+          avatarUrl: 'https://picsum.photos/seed/ecovizinha1/100/100',
+          stats: {
+            co2SavedKg: 15,
+            waterSavedLiters: 300,
+            recycledKg: 25,
+          },
+          badges: ['Mestre da Reciclagem', 'Líder Comunitário', 'Amigo das Árvores'],
+        };
 
-const UserLevel = {
-    Semente: 'Semente',
-    Broto: 'Broto',
-    Arvore: 'Árvore',
-    Floresta: 'Floresta'
-};
+        const MOCK_CHALLENGES = [
+          { id: 'c1', title: 'Faça compostagem por uma semana', description: 'Transforme seus resíduos orgânicos em adubo.', pillar: Pillar.EnvironmentalManagement, ecoCoins: 50, isCompleted: true },
+          { id: 'c2', title: 'Descarte 1 litro de óleo de cozinha', description: 'Leve seu óleo usado a um ponto de coleta.', pillar: Pillar.EnvironmentalManagement, ecoCoins: 30, isCompleted: false },
+          { id: 'c3', title: 'Tome um banho de 5 min por 3 dias', description: 'Economize água e energia.', pillar: Pillar.EnergyEfficiency, ecoCoins: 40, isCompleted: false },
+        ];
 
-// --- constants.js ---
-const MOCK_USER = {
-  name: 'Ana Silva',
-  ecoName: '@AnaDaHorta',
-  email: 'ana.silva@email.com',
-  cep: '01000-000',
-  level: UserLevel.Arvore,
-  ecoCoins: 1250,
-  xp: 450,
-  xpToNextLevel: 1000,
-  avatarUrl: 'https://picsum.photos/seed/ecovizinha1/100/100',
-  stats: {
-    co2SavedKg: 15,
-    waterSavedLiters: 300,
-    recycledKg: 25,
-  },
-  badges: ['Mestre da Reciclagem', 'Líder Comunitário', 'Amigo das Árvores'],
-};
+        const MOCK_DONATIONS = [
+            { id: 'd1', title: 'Cadeira de escritório', author: 'Mariana F.', imageUrl: 'https://picsum.photos/seed/cadeira/200/200', description: 'Em bom estado, com pequeno defeito no braço.' },
+            { id: 'd2', title: 'Livros de ficção', author: 'Pedro L.', imageUrl: 'https://picsum.photos/seed/livros/200/200', description: 'Caixa com 10 livros variados.' },
+        ];
 
-const MOCK_CHALLENGES = [
-  { id: 'c1', title: 'Faça compostagem por uma semana', description: 'Transforme seus resíduos orgânicos em adubo.', pillar: Pillar.EnvironmentalManagement, ecoCoins: 50, isCompleted: true },
-  { id: 'c2', title: 'Descarte 1 litro de óleo de cozinha', description: 'Leve seu óleo usado a um ponto de coleta.', pillar: Pillar.EnvironmentalManagement, ecoCoins: 30, isCompleted: false },
-  { id: 'c3', title: 'Tome um banho de 5 min por 3 dias', description: 'Economize água e energia.', pillar: Pillar.EnergyEfficiency, ecoCoins: 40, isCompleted: false },
-  { id: 'c4', title: 'Vá de bike ao trabalho 1x na semana', description: 'Reduza sua pegada de carbono e exercite-se.', pillar: Pillar.UrbanPlanning, ecoCoins: 60, isCompleted: true },
-  { id: 'c5', title: 'Compre em 1 comércio local esta semana', description: 'Apoie a economia do seu bairro.', pillar: Pillar.SustainableEconomy, ecoCoins: 35, isCompleted: false },
-  { id: 'c6', title: 'Participe de um mutirão de limpeza', description: 'Ajude a deixar seu bairro mais bonito.', pillar: Pillar.SocialGovernance, ecoCoins: 100, isCompleted: false },
-  { id: 'c7', title: 'Desligue os aparelhos em standby', description: 'Economize energia desligando completamente os eletrônicos.', pillar: Pillar.EnergyEfficiency, ecoCoins: 25, isCompleted: true },
-];
+        const MOCK_MUTIROES = [
+            { id: 'm1', title: 'Mutirão de Limpeza do Córrego Limpo', date: 'Sábado, 28/09, 9h', location: 'Início na Ponte da Av. Principal', participants: 12, description: 'Vamos juntos remover o lixo das margens do nosso córrego.' },
+        ];
 
-const MOCK_MAP_POINTS = [
-  { id: 'p1', name: 'Ponto de Coleta de Eletrônicos', type: MapPointType.Recycling, position: { top: '20%', left: '30%' }, details: 'Coleta de pilhas, baterias e pequenos eletrônicos.' },
-  { id: 'p2', name: 'Horta Comunitária da Praça', type: MapPointType.GreenArea, position: { top: '40%', left: '60%' }, details: 'Participe do cultivo de hortaliças para a comunidade.' },
-  { id: 'p3', name: 'Bicicletário Estação Central', type: MapPointType.Energy, position: { top: '75%', left: '25%' }, details: 'Estacione sua bicicleta com segurança.' },
-  { id: 'p4', name: 'Feira Orgânica Semanal', type: MapPointType.LocalEconomy, position: { top: '50%', left: '15%' }, details: 'Produtos frescos e locais todos os sábados.' },
-  { id: 'p5', name: 'Alerta: Descarte Irregular', type: MapPointType.Alert, position: { top: '60%', left: '80%' }, details: 'Acúmulo de entulho em terreno baldio. Reportado há 2 dias.' },
-];
+        const MOCK_COMMUNITY_POSTS = [
+            { id: 'post1', author: 'Carlos Pereira', authorAvatar: 'https://picsum.photos/seed/ecovizinho2/40/40', content: 'Pessoal, alguém tem dicas de como começar uma composteira em apartamento?', timestamp: '2h atrás' },
+        ];
 
-const MOCK_COMMUNITY_POSTS = [
-    { id: 'post1', author: 'Carlos Pereira', authorAvatar: 'https://picsum.photos/seed/ecovizinho2/40/40', content: 'Pessoal, alguém tem dicas de como começar uma composteira em apartamento?', timestamp: '2h atrás' },
-    { id: 'post2', author: 'Juliana Costa', authorAvatar: 'https://picsum.photos/seed/ecovizinha3/40/40', content: 'A feira orgânica esse fim de semana estava ótima! Recomendo as geleias da barraca "Sabor da Terra".', timestamp: '5h atrás' },
-    { id: 'post3', author: 'Marcos Lima', authorAvatar: 'https://picsum.photos/seed/ecovizinho4/40/40', content: 'Notei que a iluminação da Praça das Flores está com algumas lâmpadas queimadas. Alguém sabe como reportar à prefeitura?', timestamp: '1 dia atrás' },
-];
+        const PILLAR_COLORS = {
+            [Pillar.EnvironmentalManagement]: 'text-green-600',
+            [Pillar.EnergyEfficiency]: 'text-blue-600',
+        };
 
-const MOCK_MUTIROES = [
-    { id: 'm1', title: 'Mutirão de Limpeza do Córrego Limpo', date: 'Sábado, 28/09, 9h', location: 'Início na Ponte da Av. Principal', participants: 12, description: 'Vamos juntos remover o lixo das margens do nosso córrego. Traga luvas e sacos de lixo!' },
-    { id: 'm2', title: 'Plantio de Árvores na Praça Central', date: 'Domingo, 29/09, 10h', location: 'Praça Central', participants: 8, description: 'Recebemos 20 mudas de ipês e queremos deixar nossa praça mais verde. Venha ajudar!' },
-];
+        const PILLAR_BG_COLORS = {
+            [Pillar.EnvironmentalManagement]: 'bg-green-100',
+            [Pillar.EnergyEfficiency]: 'bg-blue-100',
+        };
 
-const MOCK_DONATIONS = [
-    { id: 'd1', title: 'Cadeira de escritório', author: 'Mariana F.', imageUrl: 'https://picsum.photos/seed/cadeira/200/200', description: 'Em bom estado, com pequeno defeito no braço.' },
-    { id: 'd2', title: 'Livros de ficção', author: 'Pedro L.', imageUrl: 'https://picsum.photos/seed/livros/200/200', description: 'Caixa com 10 livros variados.' },
-    { id: 'd3', title: 'Monitor de computador', author: 'Beatriz S.', imageUrl: 'https://picsum.photos/seed/monitor/200/200', description: 'Funcionando perfeitamente, modelo antigo.' },
-];
+        // --- COMPONENTES DO APLICATIVO ---
 
-const PILLAR_COLORS = {
-    [Pillar.EnvironmentalManagement]: 'text-green-600',
-    [Pillar.EnergyEfficiency]: 'text-blue-600',
-    [Pillar.UrbanPlanning]: 'text-yellow-600',
-    [Pillar.SustainableEconomy]: 'text-orange-600',
-    [Pillar.SocialGovernance]: 'text-purple-600',
-};
+        const Onboarding = ({ onLogin }) => {
+            const [step, setStep] = useState(0);
+            const [name, setName] = useState('');
+            const [email, setEmail] = useState('');
+            const [cep, setCep] = useState('');
+            const [ecoName, setEcoName] = useState('');
 
-const PILLAR_BG_COLORS = {
-    [Pillar.EnvironmentalManagement]: 'bg-green-100',
-    [Pillar.EnergyEfficiency]: 'bg-blue-100',
-    [Pillar.UrbanPlanning]: 'bg-yellow-100',
-    [Pillar.SustainableEconomy]: 'bg-orange-100',
-    [Pillar.SocialGovernance]: 'bg-purple-100',
-};
+            const onboardingSteps = [
+                { icon: '👥', title: "Conecte-se com sua comunidade.", text: "Faça parte de uma rede de vizinhos engajados." },
+                { icon: '🌿', title: "Descubra ações para um bairro mais verde.", text: "Encontre desafios e participe de mutirões." },
+                { icon: '🎁', title: "Transforme atitudes em benefícios.", text: "Ganhe EcoMoedas e troque por recompensas." }
+            ];
 
-// --- Componentes ---
+            const handleNext = () => setStep(step + 1);
 
-const Onboarding = ({ onLogin }) => {
-    const [step, setStep] = React.useState(0);
-    const [name, setName] = React.useState('');
-    const [email, setEmail] = React.useState('');
-    const [cep, setCep] = React.useState('');
-    const [ecoName, setEcoName] = React.useState('');
+            const handleSubmit = (event) => {
+                event.preventDefault();
+                if (name && email && cep && ecoName) {
+                    onLogin(name, email, cep, ecoName);
+                }
+            };
+            
+            if (step >= onboardingSteps.length) {
+                return (
+                    <div className="p-8 h-screen flex flex-col justify-center">
+                        <h2 className="text-2xl font-bold text-center text-cinza-escuro mb-6">Crie sua conta EcoVizinho</h2>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <input type="text" placeholder="Seu nome completo" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca" required />
+                            <input type="email" placeholder="Seu melhor e-mail" value={email} onChange={e => setEmail(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca" required />
+                            <input type="text" placeholder="CEP (para personalizar)" value={cep} onChange={e => setCep(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca" required />
+                            <input type="text" placeholder="Seu Nome de EcoVizinho" value={ecoName} onChange={e => setEcoName(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca" required />
+                            <button type="submit" className="w-full bg-verde-esperanca text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-colors">Entrar na Comunidade</button>
+                        </form>
+                    </div>
+                );
+            }
 
-    const onboardingSteps = [
-        { icon: '👥', title: "Conecte-se com sua comunidade e seu ambiente.", text: "Faça parte de uma rede de vizinhos engajados na construção de um futuro mais sustentável." },
-        { icon: '🌿', title: "Descubra ações práticas para um bairro mais verde e limpo.", text: "Encontre desafios, participe de mutirões e aprenda como suas pequenas atitudes fazem uma grande diferença." },
-        { icon: '🎁', title: "Transforme suas atitudes em benefícios para todos.", text: "Ganhe EcoMoedas por suas ações e troque por recompensas em comércios locais parceiros." }
-    ];
-
-    const handleNext = () => setStep(step + 1);
-
-    const handleSubmit = (event) => {
-        event.preventDefault();
-        if (name && email && cep && ecoName) {
-            onLogin(name, email, cep, ecoName);
-        }
-    };
-    
-    if (step >= onboardingSteps.length) {
-        return (
-            <div className="p-8 h-screen flex flex-col justify-center">
-                <h2 className="text-2xl font-bold text-center text-cinza-escuro mb-6">Crie sua conta EcoVizinho</h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <input type="text" placeholder="Seu nome completo" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca" required />
-                    <input type="email" placeholder="Seu melhor e-mail" value={email} onChange={e => setEmail(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca" required />
-                    <input type="text" placeholder="CEP (para personalizar)" value={cep} onChange={e => setCep(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca" required />
-                    <input type="text" placeholder="Seu Nome de EcoVizinho (ex: @JoaoDaRua)" value={ecoName} onChange={e => setEcoName(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-verde-esperanca" required />
-                    <button type="submit" className="w-full bg-verde-esperanca text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-colors">Entrar na Comunidade</button>
-                </form>
-            </div>
-        );
-    }
-
-    const currentStep = onboardingSteps[step];
-    return (
-        <div className="bg-white h-screen flex flex-col justify-between">
-            <div className="flex-grow flex flex-col items-center justify-center text-center p-8">
-                <span className="text-6xl text-verde-esperanca mb-6" role="img" aria-label="icon">{currentStep.icon}</span>
-                <h2 className="text-2xl font-bold text-cinza-escuro mb-4">{currentStep.title}</h2>
-                <p className="text-cinza-texto">{currentStep.text}</p>
-            </div>
-            <div className="p-8">
-                <div className="flex justify-center space-x-2 mb-4">
-                    {onboardingSteps.map((_, index) => <div key={index} className={`h-2 w-8 rounded-full ${step === index ? 'bg-verde-esperanca' : 'bg-gray-300'}`}></div>)}
-                </div>
-                <button onClick={handleNext} className="w-full bg-verde-esperanca text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-colors">{step === onboardingSteps.length - 1 ? 'Começar!' : 'Próximo'}</button>
-            </div>
-        </div>
-    );
-};
-
-const Header = ({ user }) => {
-    const progress = (user.xp / user.xpToNextLevel) * 100;
-    return (
-        <header className="bg-white shadow-md p-4 sticky top-0 z-10">
-            <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-3">
-                    <img src={user.avatarUrl} alt="Avatar do usuário" className="w-12 h-12 rounded-full border-2 border-verde-esperanca" />
-                    <div>
-                        <h1 className="font-bold text-cinza-escuro">{user.name}</h1>
-                        <p className="text-sm text-cinza-texto">{user.ecoName}</p>
+            const currentStep = onboardingSteps[step];
+            return (
+                <div className="bg-white h-screen flex flex-col justify-between">
+                    <div className="flex-grow flex flex-col items-center justify-center text-center p-8">
+                        <span className="text-6xl text-verde-esperanca mb-6" role="img" aria-label="icon">{currentStep.icon}</span>
+                        <h2 className="text-2xl font-bold text-cinza-escuro mb-4">{currentStep.title}</h2>
+                        <p className="text-cinza-texto">{currentStep.text}</p>
+                    </div>
+                    <div className="p-8">
+                        <div className="flex justify-center space-x-2 mb-4">
+                            {onboardingSteps.map((_, index) => <div key={index} className={`h-2 w-8 rounded-full ${step === index ? 'bg-verde-esperanca' : 'bg-gray-300'}`}></div>)}
+                        </div>
+                        <button onClick={handleNext} className="w-full bg-verde-esperanca text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-colors">{step === onboardingSteps.length - 1 ? 'Começar!' : 'Próximo'}</button>
                     </div>
                 </div>
-                <div className="flex items-center space-x-2 text-amarelo-sol font-bold">
-                    <span role="img" aria-label="EcoMoedas" className="text-2xl">🪙</span>
-                    <span className="text-lg">{user.ecoCoins}</span>
-                </div>
-            </div>
-            <div className="mt-3">
-                <div className="flex justify-between items-center text-sm mb-1">
-                    <div className="flex items-center space-x-1 font-semibold text-cinza-escuro">
-                        <span role="img" aria-label="Nível" className="text-lg">🌳</span>
-                        <span>Nível: {user.level}</span>
+            );
+        };
+
+        const Header = ({ user }) => {
+            const progress = (user.xp / user.xpToNextLevel) * 100;
+            return (
+                <header className="bg-white shadow-md p-4 sticky top-0 z-10">
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-3">
+                            <img src={user.avatarUrl} alt="Avatar do usuário" className="w-12 h-12 rounded-full border-2 border-verde-esperanca" />
+                            <div>
+                                <h1 className="font-bold text-cinza-escuro">{user.name}</h1>
+                                <p className="text-sm text-cinza-texto">{user.ecoName}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center space-x-2 text-amarelo-sol font-bold">
+                            <span role="img" aria-label="EcoMoedas" className="text-2xl">🪙</span>
+                            <span className="text-lg">{user.ecoCoins}</span>
+                        </div>
                     </div>
-                    <span className="text-cinza-texto">{user.xp} / {user.xpToNextLevel} XP</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div className="bg-azul-cerrado h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
-                </div>
-            </div>
-        </header>
-    );
-};
+                    <div className="mt-3">
+                        <div className="flex justify-between items-center text-sm mb-1">
+                            <div className="flex items-center space-x-1 font-semibold text-cinza-escuro">
+                                <span role="img" aria-label="Nível" className="text-lg">🌳</span>
+                                <span>Nível: {user.level}</span>
+                            </div>
+                            <span className="text-cinza-texto">{user.xp} / {user.xpToNextLevel} XP</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <div className="bg-azul-cerrado h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
 
-const BottomNav = ({ activeScreen, setActiveScreen }) => {
-    const navItems = [
-        { icon: '🏠', label: 'Início', screen: Screen.Dashboard },
-        { icon: '🗺️', label: 'Mapa', screen: Screen.ActionMap },
-        { icon: '🏆', label: 'Desafios', screen: Screen.Challenges },
-        { icon: '👥', label: 'Comunidade', screen: Screen.Community },
-        { icon: '👤', label: 'Perfil', screen: Screen.Profile },
-    ];
-    return (
-        <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto h-16 bg-white border-t border-gray-200 flex justify-around items-center shadow-top z-10">
-            {navItems.map(item => (
-                <button
-                    key={item.screen}
-                    onClick={() => setActiveScreen(item.screen)}
-                    className={`flex flex-col items-center justify-center w-full transition-colors ${activeScreen === item.screen ? 'text-verde-esperanca' : 'text-gray-500'} hover:text-verde-esperanca`}
-                >
-                    <span className="text-2xl" role="img" aria-label={item.label}>{item.icon}</span>
-                    <span className="text-xs mt-1">{item.label}</span>
-                </button>
-            ))}
-        </nav>
-    );
-};
-
-const Dashboard = ({ user }) => {
-     return (
-        <div className="p-4 space-y-6">
-            <div className="bg-white p-4 rounded-lg shadow-md">
-                <h2 className="text-lg font-bold text-cinza-escuro mb-2">Meu Impacto Hoje</h2>
-                <p className="text-center text-xl font-bold text-cinza-escuro">Você evitou {user.stats.co2SavedKg}kg de CO2 hoje!</p>
-                <div className="mt-4 space-y-2 text-sm text-center">
-                    <p><strong>{user.stats.waterSavedLiters}L</strong> de água poupada</p>
-                    <p><strong>{user.stats.recycledKg}kg</strong> de lixo reciclado</p>
+        const Dashboard = ({ user }) => {
+            return (
+                <div className="p-4 space-y-6">
+                    <div className="bg-white p-4 rounded-lg shadow-md">
+                        <h2 className="text-lg font-bold text-cinza-escuro mb-2">Meu Impacto Hoje</h2>
+                        <p className="text-center text-xl font-bold text-cinza-escuro">Você evitou {user.stats.co2SavedKg}kg de CO2 hoje!</p>
+                        <div className="mt-4 space-y-2 text-sm text-center">
+                            <p><strong>{user.stats.waterSavedLiters}L</strong> de água poupada</p>
+                            <p><strong>{user.stats.recycledKg}kg</strong> de lixo reciclado</p>
+                        </div>
+                    </div>
+                    <div className="bg-azul-cerrado text-white p-6 rounded-lg shadow-lg flex items-center space-x-4">
+                        <span className="text-5xl" role='img' aria-label='Megafone'>📣</span>
+                        <div>
+                            <h3 className="font-bold text-lg">Desafio da Semana</h3>
+                            <p className="mt-1">Participe de um mutirão de limpeza e ganhe 100 EcoMoedas!</p>
+                            <button className="mt-3 bg-white text-azul-cerrado font-bold py-1 px-4 rounded-full text-sm hover:bg-gray-100">Ver Detalhes</button>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div className="bg-azul-cerrado text-white p-6 rounded-lg shadow-lg flex items-center space-x-4">
-                <span className="text-5xl" role='img' aria-label='Megafone'>📣</span>
-                <div>
-                    <h3 className="font-bold text-lg">Desafio da Semana</h3>
-                    <p className="mt-1">Participe de um mutirão de limpeza e ganhe 100 EcoMoedas!</p>
-                    <button className="mt-3 bg-white text-azul-cerrado font-bold py-1 px-4 rounded-full text-sm hover:bg-gray-100">Ver Detalhes</button>
+            );
+        };
+
+        const ActionMap = () => {
+            const [location, setLocation] = useState(null);
+            const [status, setStatus] = useState('Buscando sua localização...');
+            const [error, setError] = useState(null);
+
+            useEffect(() => {
+                if (!navigator.geolocation) {
+                    setError('Geolocalização não é suportada pelo seu navegador.');
+                    setStatus('Erro');
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        setLocation({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                        });
+                        setStatus('Localização encontrada!');
+                        setError(null);
+                    },
+                    (err) => {
+                        setError('Não foi possível obter sua localização. Verifique as permissões.');
+                        setStatus('Erro');
+                    }
+                );
+            }, []);
+
+            return (
+                <div className="p-6 h-full flex flex-col items-center justify-center text-center bg-gray-50">
+                    <h2 className="text-xl font-bold text-cinza-escuro mb-4">Mapa de Geolocalização</h2>
+                    <div className="w-full max-w-sm p-6 bg-white rounded-lg shadow-md">
+                        <div className="flex items-center justify-center space-x-3 mb-4">
+                            <span className={`text-3xl ${error ? 'animate-bounce' : 'animate-pulse'}`} role="img" aria-label="ícone de mapa">
+                                {error ? '❌' : location ? '✅' : '🛰️'}
+                            </span>
+                            <p className="font-semibold text-lg text-cinza-escuro">{status}</p>
+                        </div>
+                        {error && <p className="text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
+                        {location && (
+                            <div className="mt-4 text-left bg-green-50 p-4 rounded-md border border-green-200">
+                                <p className="text-lg text-cinza-escuro font-mono">Lat: <span className="font-bold">{location.latitude.toFixed(5)}</span></p>
+                                <p className="text-lg text-cinza-escuro font-mono">Lon: <span className="font-bold">{location.longitude.toFixed(5)}</span></p>
+                            </div>
+                        )}
+                    </div>
+                    <p className="mt-6 text-xs text-cinza-texto px-4">Esta tela confirma que o acesso à sua localização está funcionando.</p>
                 </div>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-md">
-                <h2 className="text-lg font-bold text-cinza-escuro mb-4">Notificações da Vizinhança</h2>
-                <div className="space-y-3">
-                    <p className="text-sm text-cinza-texto"><span className="font-semibold text-cinza-escuro">♻️ Maria</span> reciclou 5kg de plástico!</p>
-                    <p className="text-sm text-cinza-texto"><span className="font-semibold text-cinza-escuro">✅ João</span> participou do mutirão de limpeza.</p>
-                    <p className="text-sm text-cinza-texto"><span className="font-semibold text-cinza-escuro">💧 Carlos</span> reportou um vazamento de água.</p>
-                </div>
-            </div>
-        </div>
-    );
-};
+            );
+        };
 
-const ActionMap = () => {
-    const [activeFilter, setActiveFilter] = React.useState(null);
-    const [selectedPoint, setSelectedPoint] = React.useState(null);
-
-    const filteredPoints = MOCK_MAP_POINTS.filter(point => activeFilter === null || point.type === activeFilter);
-    
-    const getPinColor = (type) => {
-        switch (type) {
-            case MapPointType.Recycling: return '#28A745';
-            case MapPointType.GreenArea: return '#16a34a';
-            case MapPointType.Energy: return '#1E88E5';
-            case MapPointType.LocalEconomy: return '#f97316';
-            case MapPointType.Alert: return '#ef4444';
-            default: return '#6b7280';
-        }
-    };
-
-    return (
-        <div className="relative h-full w-full flex flex-col">
-            <div className="p-2 bg-white shadow-sm overflow-x-auto">
-                <div className="flex space-x-2">
-                    {Object.values(MapPointType).map(type => (
-                        <button
-                            key={type}
-                            onClick={() => setActiveFilter(type === activeFilter ? null : type)}
-                            className={`px-3 py-1 text-sm font-semibold rounded-full whitespace-nowrap transition-colors ${activeFilter === type ? 'bg-verde-esperanca text-white' : 'bg-gray-200 text-gray-700'}`}
-                        >{type.split(' ')[1]}</button>
+        const Challenges = () => {
+            return (
+                <div className="p-4 space-y-4">
+                    <h2 className="text-xl font-bold text-cinza-escuro">Desafios e Ações</h2>
+                    {MOCK_CHALLENGES.map(challenge => (
+                        <div key={challenge.id} className={`p-4 rounded-lg shadow-md border-l-4 ${challenge.isCompleted ? 'bg-gray-100 border-gray-300' : 'bg-white border-verde-esperanca'}`}>
+                             <div className="flex justify-between items-start">
+                                <div>
+                                    <h3 className={`font-bold ${challenge.isCompleted ? 'text-gray-500 line-through' : 'text-cinza-escuro'}`}>{challenge.title}</h3>
+                                    <p className="text-sm text-cinza-texto mt-1">{challenge.description}</p>
+                                </div>
+                                <div className="flex flex-col items-end space-y-1 ml-2">
+                                    {challenge.isCompleted ? <span className="text-2xl">✅</span> : <button className="bg-verde-esperanca text-white rounded-full p-2"><span className="text-xl">➕</span></button>}
+                                    <span className="text-sm font-bold text-amarelo-sol">+{challenge.ecoCoins}</span>
+                                </div>
+                            </div>
+                        </div>
                     ))}
                 </div>
-            </div>
-            <div
-                className="flex-grow relative overflow-hidden"
-                style={{
-                    backgroundColor: '#f0f4f8',
-                    backgroundImage: `linear-gradient(rgba(0, 128, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 128, 0, 0.1) 1px, transparent 1px)`,
-                    backgroundSize: '25px 25px',
-                }}
-            >
-                {filteredPoints.map(point => (
-                    <button
-                        key={point.id}
-                        onClick={() => setSelectedPoint(point)}
-                        className="absolute transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-xl hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-azul-cerrado"
-                        style={{ top: point.position.top, left: point.position.left, border: `3px solid ${getPinColor(point.type)}` }}
-                        aria-label={`Ver detalhes de ${point.name}`}
-                    >
-                        <span className="text-2xl" role="img" aria-hidden="true">{point.type.split(' ')[0]}</span>
-                    </button>
-                ))}
-            </div>
-            {selectedPoint && (
-                <div className="absolute bottom-0 left-0 right-0 bg-white p-4 rounded-t-2xl shadow-lg z-20 transition-transform duration-300 ease-in-out transform translate-y-0">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h3 className="text-lg font-bold text-cinza-escuro">{selectedPoint.name}</h3>
-                            <p className="text-sm text-cinza-texto mt-1">{selectedPoint.details}</p>
-                        </div>
-                        <button onClick={() => setSelectedPoint(null)} className="text-gray-500 hover:text-gray-800 text-2xl">×</button>
-                    </div>
-                    <div className="flex space-x-2 mt-4 text-sm">
-                        <button className="flex-1 bg-azul-cerrado text-white py-2 px-3 rounded-lg flex items-center justify-center space-x-2"><span>🗺️</span> <span>Como Chegar</span></button>
-                        <button className="flex-1 bg-red-500 text-white py-2 px-3 rounded-lg flex items-center justify-center space-x-2"><span>⚠️</span> <span>Reportar Problema</span></button>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
+            );
+        };
 
-const Challenges = () => {
-    return (
-        <div className="p-4 space-y-4">
-            <h2 className="text-xl font-bold text-cinza-escuro">Desafios e Ações</h2>
-            {MOCK_CHALLENGES.map(challenge => (
-                <div key={challenge.id} className={`p-4 rounded-lg shadow-md border-l-4 ${challenge.isCompleted ? 'bg-gray-100 border-gray-300' : 'bg-white border-verde-esperanca'}`}>
-                    <div className="flex justify-between items-start">
+        const Community = () => {
+            return (
+                <div className="p-4">
+                    <h2 className="text-xl font-bold text-cinza-escuro mb-4">Comunidade</h2>
+                    <div className="space-y-6">
                         <div>
-                            <h3 className={`font-bold ${challenge.isCompleted ? 'text-gray-500 line-through' : 'text-cinza-escuro'}`}>{challenge.title}</h3>
-                            <p className="text-sm text-cinza-texto mt-1">{challenge.description}</p>
-                            <div className={`mt-2 text-xs font-semibold px-2 py-0.5 rounded-full inline-block ${PILLAR_BG_COLORS[challenge.pillar]} ${PILLAR_COLORS[challenge.pillar]}`}>{challenge.pillar}</div>
-                        </div>
-                        <div className="flex flex-col items-end space-y-1 ml-2">
-                            {challenge.isCompleted ? <span className="text-2xl">✅</span> : <button className="bg-verde-esperanca text-white rounded-full p-2"><span className="text-xl">➕</span></button>}
-                            <span className="text-sm font-bold text-amarelo-sol">+{challenge.ecoCoins}</span>
-                        </div>
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-};
-
-const Community = () => {
-    return (
-        <div className="p-4">
-            <h2 className="text-xl font-bold text-cinza-escuro mb-4">Comunidade</h2>
-            <div className="space-y-6">
-                
-                <div>
-                  <h3 className="font-bold text-lg text-azul-cerrado mb-3">Troca & Doação</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                      {MOCK_DONATIONS.map(item => (
-                        <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                          <img src={item.imageUrl} alt={item.title} className="w-full h-24 object-cover" />
-                          <div className="p-3">
-                            <h4 className="font-bold text-sm text-cinza-escuro truncate">{item.title}</h4>
-                            <p className="text-xs text-cinza-texto">Doado por {item.author}</p>
-                            <button className="w-full mt-3 bg-verde-esperanca text-white py-1 px-2 rounded text-xs font-bold">Tenho Interesse</button>
+                          <h3 className="font-bold text-lg text-azul-cerrado mb-3">Troca & Doação</h3>
+                          <div className="grid grid-cols-2 gap-4">
+                              {MOCK_DONATIONS.map(item => (
+                                <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                                  <img src={item.imageUrl} alt={item.title} className="w-full h-24 object-cover" />
+                                  <div className="p-3">
+                                    <h4 className="font-bold text-sm text-cinza-escuro truncate">{item.title}</h4>
+                                    <p className="text-xs text-cinza-texto">Doado por {item.author}</p>
+                                    <button className="w-full mt-3 bg-verde-esperanca text-white py-1 px-2 rounded text-xs font-bold">Tenho Interesse</button>
+                                  </div>
+                                </div>
+                              ))}
                           </div>
                         </div>
-                      ))}
-                  </div>
+                    </div>
                 </div>
+            );
+        };
 
-                <div>
-                    <h3 className="font-bold text-lg text-azul-cerrado mb-3">Mutirões Ativos</h3>
-                    {MOCK_MUTIROES.map(mutirao => (
-                        <div key={mutirao.id} className="bg-white p-4 rounded-lg shadow-md mb-3">
-                            <h4 className="font-bold text-cinza-escuro">{mutirao.title}</h4>
-                            <p className="text-sm text-cinza-texto mt-1">{mutirao.date}</p>
-                            <p className="mt-2 text-cinza-escuro text-sm">{mutirao.description}</p>
-                            <button className="mt-4 bg-azul-cerrado text-white py-2 px-4 rounded-lg text-sm font-bold">Vou Participar!</button>
-                        </div>
-                    ))}
-                </div>
+        const Profile = ({ user }) => {
+            const journeySteps = [
+              { level: UserLevel.Semente, icon: '🌱' },
+              { level: UserLevel.Broto, icon: '🌿' },
+              { level: UserLevel.Arvore, icon: '🌳' },
+              { level: UserLevel.Floresta, icon: '🏞️' },
+            ];
+            const currentUserIndex = journeySteps.findIndex(step => step.level === user.level);
 
-                <div>
-                    <h3 className="font-bold text-lg text-azul-cerrado mb-3">Fórum do Bairro</h3>
-                    {MOCK_COMMUNITY_POSTS.map(post => (
-                        <div key={post.id} className="bg-white p-4 rounded-lg shadow-md mb-3">
-                            <div className="flex items-start space-x-3">
-                                <img src={post.authorAvatar} className="w-10 h-10 rounded-full" />
-                                <div>
-                                    <p className="font-bold text-cinza-escuro">{post.author}</p>
-                                    <p className="text-xs text-cinza-texto">{post.timestamp}</p>
+            return (
+                <div className="p-4 space-y-6">
+                    <div className="text-center">
+                        <img src={user.avatarUrl} alt="Avatar do usuário" className="w-24 h-24 rounded-full border-4 border-verde-esperanca mx-auto" />
+                        <h2 className="text-xl font-bold mt-2 text-cinza-escuro">{user.name}</h2>
+                        <p className="text-cinza-texto">{user.ecoName}</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow-md">
+                        <h3 className="font-bold text-cinza-escuro mb-4 text-center">Jornada do EcoVizinho</h3>
+                        <div className="flex justify-between items-center relative">
+                            <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-200 -translate-y-1/2 -z-10"></div>
+                            <div className="absolute top-1/2 left-0 h-1 bg-verde-esperanca -translate-y-1/2 -z-10" style={{ width: `${(currentUserIndex / (journeySteps.length - 1)) * 100}%`}}></div>
+                            {journeySteps.map((step, index) => (
+                                <div key={step.level} className={`w-12 h-12 rounded-full flex items-center justify-center text-3xl bg-white border-2 transition-all duration-300 ${index <= currentUserIndex ? 'border-verde-esperanca' : 'border-gray-200'} ${index === currentUserIndex ? 'journey-step-active' : ''}`}>
+                                    {step.icon}
                                 </div>
-                            </div>
-                            <p className="mt-3 text-cinza-escuro">{post.content}</p>
+                            ))}
                         </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const Profile = ({ user }) => {
-    const journeySteps = [
-      { level: UserLevel.Semente, icon: '🌱' },
-      { level: UserLevel.Broto, icon: '🌿' },
-      { level: UserLevel.Arvore, icon: '🌳' },
-      { level: UserLevel.Floresta, icon: '🏞️' },
-    ];
-    const currentUserIndex = journeySteps.findIndex(step => step.level === user.level);
-
-    return (
-        <div className="p-4 space-y-6">
-            <div className="text-center">
-                <img src={user.avatarUrl} className="w-24 h-24 rounded-full border-4 border-verde-esperanca mx-auto" />
-                <h2 className="text-xl font-bold mt-2 text-cinza-escuro">{user.name}</h2>
-                <p className="text-cinza-texto">{user.ecoName}</p>
-            </div>
-
-            <div className="bg-white p-4 rounded-lg shadow-md">
-                <h3 className="font-bold text-cinza-escuro mb-4 text-center">Jornada do EcoVizinho</h3>
-                <div className="flex justify-between items-center relative">
-                    <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-200 -translate-y-1/2 -z-10"></div>
-                    <div className="absolute top-1/2 left-0 h-1 bg-verde-esperanca -translate-y-1/2 -z-10" style={{ width: `${(currentUserIndex / (journeySteps.length - 1)) * 100}%`}}></div>
-                    {journeySteps.map((step, index) => (
-                        <div key={step.level} className={`w-12 h-12 rounded-full flex items-center justify-center text-3xl bg-white border-2 transition-all duration-300 ${index <= currentUserIndex ? 'border-verde-esperanca' : 'border-gray-200'} ${index === currentUserIndex ? 'journey-step-active' : ''}`}>
-                            {step.icon}
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow-md">
+                        <h3 className="font-bold text-cinza-escuro mb-3">Minhas Medalhas</h3>
+                        <div className="flex space-x-4 overflow-x-auto pb-2">
+                            {user.badges.map(badge => (
+                                <div key={badge} className="text-center flex-shrink-0 w-24">
+                                    <div className="bg-yellow-100 text-yellow-500 text-4xl w-16 h-16 rounded-full flex items-center justify-center mx-auto">🏆</div>
+                                    <p className="text-xs mt-1 text-cinza-texto">{badge}</p>
+                                </div>
+                            ))}
                         </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const BottomNav = ({ activeScreen, setActiveScreen }) => {
+            const navItems = [
+                { icon: '🏠', label: 'Início', screen: Screen.Dashboard },
+                { icon: '🗺️', label: 'Mapa', screen: Screen.ActionMap },
+                { icon: '🏆', label: 'Desafios', screen: Screen.Challenges },
+                { icon: '👥', label: 'Comunidade', screen: Screen.Community },
+                { icon: '👤', label: 'Perfil', screen: Screen.Profile },
+            ];
+            return (
+                <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto h-16 bg-white border-t border-gray-200 flex justify-around items-center shadow-top z-10">
+                    {navItems.map(item => (
+                        <button
+                            key={item.screen}
+                            onClick={() => setActiveScreen(item.screen)}
+                            className={`flex flex-col items-center justify-center w-full transition-colors ${activeScreen === item.screen ? 'text-verde-esperanca' : 'text-gray-500'} hover:text-verde-esperanca`}
+                        >
+                            <span className="text-2xl" role="img" aria-label={item.label}>{item.icon}</span>
+                            <span className="text-xs mt-1">{item.label}</span>
+                        </button>
                     ))}
-                </div>
-            </div>
+                </nav>
+            );
+        };
 
-            <div className="bg-white p-4 rounded-lg shadow-md">
-                <h3 className="font-bold text-cinza-escuro mb-3">Minhas Estatísticas</h3>
-                <div className="grid grid-cols-3 gap-4 text-center">
-                    <div><span className="text-4xl">💨</span><p>{user.stats.co2SavedKg}kg</p><p className="text-xs">CO2 evitado</p></div>
-                    <div><span className="text-4xl">💧</span><p>{user.stats.waterSavedLiters}L</p><p className="text-xs">Água poupada</p></div>
-                    <div><span className="text-4xl">♻️</span><p>{user.stats.recycledKg}kg</p><p className="text-xs">Lixo reciclado</p></div>
-                </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg shadow-md">
-                <h3 className="font-bold text-cinza-escuro mb-3">Minhas Medalhas</h3>
-                <div className="flex space-x-4 overflow-x-auto pb-2">
-                    {user.badges.map(badge => (
-                        <div key={badge} className="text-center flex-shrink-0 w-24">
-                            <div className="bg-yellow-100 text-yellow-500 text-4xl w-16 h-16 rounded-full flex items-center justify-center mx-auto">🏆</div>
-                            <p className="text-xs mt-1 text-cinza-texto">{badge}</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
+        const EcoAssistant = ({ onClose }) => {
+            const [messages, setMessages] = useState([
+                { from: 'model', text: 'Olá! Sou seu EcoAssistente. Como posso ajudar você a ser mais sustentável hoje?' }
+            ]);
+            const [input, setInput] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const chatEndRef = useRef(null);
 
-            <div className="bg-white p-4 rounded-lg shadow-md">
-                <h3 className="font-bold text-cinza-escuro mb-3">EcoLoja</h3>
-                 <div className="space-y-3">
-                    <div className="flex items-center justify-between"><span className="text-sm">🛍️ 10% de desconto na Padaria</span><button className="bg-amarelo-sol text-white text-xs font-bold py-1 px-3 rounded-full">500 🪙</button></div>
-                    <div className="flex items-center justify-between"><span className="text-sm">🌳 Plantar 1 árvore</span><button className="bg-amarelo-sol text-white text-xs font-bold py-1 px-3 rounded-full">1000 🪙</button></div>
-                 </div>
-            </div>
-        </div>
-    );
-};
+            useEffect(() => {
+                chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [messages]);
 
+            const handleSend = async () => {
+                if (!input.trim() || isLoading) return;
+                
+                const userMessage = { from: 'user', text: input };
+                setMessages(prev => [...prev, userMessage]);
+                setInput('');
+                setIsLoading(true);
 
-const EcoAssistant = ({ onClose }) => {
-    const [messages, setMessages] = React.useState([
-        { from: 'model', text: 'Olá! Sou seu EcoAssistente. Como posso ajudar você a ser mais sustentável hoje?' }
-    ]);
-    const [input, setInput] = React.useState('');
-    const [isLoading, setIsLoading] = React.useState(false);
-    const chatEndRef = React.useRef(null);
-    const [apiKey, setApiKey] = React.useState(process.env.API_KEY);
-    const [showKeyInput, setShowKeyInput] = React.useState(!apiKey);
+                try {
+                    if (!process.env.API_KEY) {
+                        console.error("API_KEY não encontrada. O EcoAssistente não pode funcionar sem ela.");
+                        const errorMessage = { from: 'model', text: '😕 Desculpe, a minha conexão com a inteligência artificial não foi configurada. O EcoAssistente está indisponível.' };
+                        setMessages(prev => [...prev, errorMessage]);
+                        setIsLoading(false);
+                        return;
+                    }
 
-    React.useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
-
-    const handleSend = async () => {
-        if (!input.trim() || isLoading) return;
-        if (!apiKey) {
-            setShowKeyInput(true);
-            setMessages(prev => [...prev, { from: 'model', text: 'Por favor, insira sua Chave de API da Gemini para continuar.'}]);
-            return;
-        }
-
-        const userMessage = { from: 'user', text: input };
-        setMessages(prev => [...prev, userMessage]);
-        setInput('');
-        setIsLoading(true);
-
-        try {
-            const ai = new GoogleGenAI({ apiKey: apiKey });
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: [ { role: 'user', parts: [{ text: input }] } ],
-                config: {
-                    systemInstruction: 'Você é o EcoAssistente, um chatbot amigável e especialista em sustentabilidade para o aplicativo EcoVizinhança. Suas respostas devem ser curtas, diretas, úteis e sempre em português do Brasil. Use emojis para deixar a conversa mais leve. Foque em dar dicas práticas que um morador de um bairro pode aplicar no dia a dia.',
+                    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                    const response = await ai.models.generateContent({
+                        model: 'gemini-2.5-flash',
+                        contents: input,
+                        config: {
+                            systemInstruction: 'Você é o EcoAssistente, um chatbot amigável e especialista em sustentabilidade para o aplicativo EcoVizinhança. Suas respostas devem ser curtas, diretas, úteis e sempre em português do Brasil. Use emojis para deixar a conversa mais leve.',
+                        }
+                    });
+                    const modelMessage = { from: 'model', text: response.text };
+                    setMessages(prev => [...prev, modelMessage]);
+                } catch (error) {
+                    console.error("Erro na API Gemini:", error);
+                    const errorMessage = { from: 'model', text: '😕 Desculpe, não consegui processar sua pergunta. Tente novamente mais tarde.' };
+                    setMessages(prev => [...prev, errorMessage]);
+                } finally {
+                    setIsLoading(false);
                 }
-            });
-            const modelMessage = { from: 'model', text: response.text };
-            setMessages(prev => [...prev, modelMessage]);
-        } catch (error) {
-            console.error("Erro na API Gemini:", error);
-            const errorMessage = { from: 'model', text: '😕 Desculpe, não consegui processar sua pergunta. Verifique sua chave de API ou tente novamente mais tarde.' };
-            setMessages(prev => [...prev, errorMessage]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
-    const handleKeySubmit = (key) => {
-        setApiKey(key);
-        setShowKeyInput(false);
-        setMessages(prev => [...prev, { from: 'model', text: 'Obrigado! Chave de API configurada. Agora pode me perguntar o que quiser.' }]);
-    }
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
-            <div className="bg-white w-full max-w-lg h-4/5 rounded-t-2xl flex flex-col shadow-lg">
-                <header className="flex items-center justify-between p-4 border-b">
-                    <h2 className="font-bold text-lg text-cinza-escuro">✨ EcoAssistente</h2>
-                    <button onClick={onClose} className="text-2xl text-gray-500">&times;</button>
-                </header>
-                <main className="flex-1 p-4 overflow-y-auto space-y-4">
-                    {messages.map((msg, index) => (
-                        <div key={index} className={`flex ${msg.from === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`p-3 max-w-xs md:max-w-md ${msg.from === 'user' ? 'chat-bubble-user' : 'chat-bubble-model'}`}>
-                                {msg.text}
-                            </div>
-                        </div>
-                    ))}
-                    {isLoading && (
-                        <div className="flex justify-start">
-                           <div className="p-3 chat-bubble-model">
-                                <div className="flex items-center space-x-2">
-                                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
-                                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+            };
+            
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
+                    <div className="bg-white w-full max-w-lg h-4/5 rounded-t-2xl flex flex-col shadow-lg">
+                        <header className="flex items-center justify-between p-4 border-b">
+                            <h2 className="font-bold text-lg text-cinza-escuro">✨ EcoAssistente</h2>
+                            <button onClick={onClose} className="text-2xl text-gray-500">&times;</button>
+                        </header>
+                        <main className="flex-1 p-4 overflow-y-auto space-y-4">
+                            {messages.map((msg, index) => (
+                                <div key={index} className={`flex ${msg.from === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`p-3 max-w-xs md:max-w-md ${msg.from === 'user' ? 'chat-bubble-user' : 'chat-bubble-model'}`}>{msg.text}</div>
                                 </div>
-                           </div>
-                        </div>
-                    )}
-                    <div ref={chatEndRef} />
-                </main>
-                <footer className="p-4 border-t bg-white">
-                    { showKeyInput ? (
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="password"
-                            onKeyPress={e => e.key === 'Enter' && handleKeySubmit(e.target.value)}
-                            placeholder="Insira sua Chave de API da Gemini"
-                            className="flex-1 p-2 border rounded-full focus:ring-2 focus:ring-verde-esperanca"
-                          />
-                          <button onClick={() => handleKeySubmit(document.querySelector('input[type=password]').value)} className="bg-verde-esperanca text-white px-4 h-10 rounded-full flex items-center justify-center">Salvar</button>
-                        </div>
-                    ) : (
-                        <div className="flex items-center space-x-2">
-                            <input
-                                type="text"
-                                value={input}
-                                onChange={e => setInput(e.target.value)}
-                                onKeyPress={e => e.key === 'Enter' && handleSend()}
-                                placeholder="Pergunte algo..."
-                                className="flex-1 p-2 border rounded-full focus:ring-2 focus:ring-verde-esperanca"
-                                disabled={isLoading}
-                            />
-                            <button onClick={handleSend} disabled={isLoading || !input.trim()} className="bg-verde-esperanca text-white w-10 h-10 rounded-full flex items-center justify-center disabled:bg-gray-400">
-                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086L2.279 16.76a.75.75 0 00.95.826l16-5.333a.75.75 0 000-1.418l-16-5.333z" /></svg>
-                            </button>
-                        </div>
-                    )}
-                </footer>
-            </div>
-        </div>
-    );
-};
+                            ))}
+                            {isLoading && (
+                                <div className="flex justify-start">
+                                   <div className="p-3 chat-bubble-model">
+                                        <div className="flex items-center space-x-2">
+                                          <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
+                                          <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                                          <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                                        </div>
+                                   </div>
+                                </div>
+                            )}
+                            <div ref={chatEndRef} />
+                        </main>
+                        <footer className="p-4 border-t bg-white">
+                            <div className="flex items-center space-x-2">
+                                <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSend()} placeholder="Pergunte algo..." className="flex-1 p-2 border rounded-full focus:ring-2 focus:ring-verde-esperanca" disabled={isLoading} />
+                                <button onClick={handleSend} disabled={isLoading || !input.trim()} className="bg-verde-esperanca text-white w-10 h-10 rounded-full flex items-center justify-center disabled:bg-gray-400">
+                                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086L2.279 16.76a.75.75 0 00.95.826l16-5.333a.75.75 0 000-1.418l-16-5.333z" /></svg>
+                                </button>
+                            </div>
+                        </footer>
+                    </div>
+                </div>
+            );
+        };
 
-const App = () => {
-    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-    const [user, setUser] = React.useState(null);
-    const [activeScreen, setActiveScreen] = React.useState(Screen.Dashboard);
-    const [isAssistantOpen, setIsAssistantOpen] = React.useState(false);
+        // --- APLICATIVO PRINCIPAL ---
 
-    const handleLogin = (name, email, cep, ecoName) => {
-        setUser({ ...MOCK_USER, name, email, cep, ecoName });
-        setIsAuthenticated(true);
-    };
+        const App = () => {
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [user, setUser] = useState(null);
+            const [activeScreen, setActiveScreen] = useState(Screen.Dashboard);
+            const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
-    const renderScreen = () => {
-        if (!user) return null;
-        switch (activeScreen) {
-            case Screen.Dashboard: return <Dashboard user={user} />;
-            case Screen.ActionMap: return <ActionMap />;
-            case Screen.Challenges: return <Challenges />;
-            case Screen.Community: return <Community />;
-            case Screen.Profile: return <Profile user={user} />;
-            default: return <Dashboard user={user} />;
-        }
-    };
+            const handleLogin = (name, email, cep, ecoName) => {
+                setUser({ ...MOCK_USER, name, email, cep, ecoName });
+                setIsAuthenticated(true);
+            };
 
-    if (!isAuthenticated) {
-        return <Onboarding onLogin={handleLogin} />;
-    }
+            const renderScreen = () => {
+                if (!user) return null;
+                switch (activeScreen) {
+                    case Screen.Dashboard: return <Dashboard user={user} />;
+                    case Screen.ActionMap: return <ActionMap />;
+                    case Screen.Challenges: return <Challenges />;
+                    case Screen.Community: return <Community />;
+                    case Screen.Profile: return <Profile user={user} />;
+                    default: return <Dashboard user={user} />;
+                }
+            };
 
-    return (
-        <div className="bg-cinza-claro font-sans h-screen w-full flex flex-col max-w-lg mx-auto shadow-2xl relative">
-            <Header user={user} />
-            <main className="flex-grow overflow-y-auto pb-20 bg-gray-50">
-                {renderScreen()}
-            </main>
-            <BottomNav activeScreen={activeScreen} setActiveScreen={setActiveScreen} />
-            <button 
-              onClick={() => setIsAssistantOpen(true)}
-              className="absolute bottom-20 right-4 bg-azul-cerrado text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg text-3xl hover:bg-blue-600 transition-colors"
-              aria-label="Abrir EcoAssistente"
-            >
-              ✨
-            </button>
-            {isAssistantOpen && <EcoAssistant onClose={() => setIsAssistantOpen(false)} />}
-        </div>
-    );
-};
+            if (!isAuthenticated || !user) {
+                return <Onboarding onLogin={handleLogin} />;
+            }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+            return (
+                <div className="bg-cinza-claro font-sans h-screen w-full flex flex-col max-w-lg mx-auto shadow-2xl relative">
+                    <Header user={user} />
+                    <main className="flex-grow overflow-y-auto pb-20 bg-gray-50">
+                        {renderScreen()}
+                    </main>
+                    <BottomNav activeScreen={activeScreen} setActiveScreen={setActiveScreen} />
+                    <button 
+                      onClick={() => setIsAssistantOpen(true)}
+                      className="absolute bottom-20 right-4 bg-azul-cerrado text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg text-3xl hover:bg-blue-600 transition-colors"
+                      aria-label="Abrir EcoAssistente"
+                    >
+                      ✨
+                    </button>
+                    {isAssistantOpen && <EcoAssistant onClose={() => setIsAssistantOpen(false)} />}
+                </div>
+            );
+        };
+
+        // --- INICIALIZAÇÃO DO APLICATIVO ---
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(
+          <React.StrictMode>
+            <App />
+          </React.StrictMode>
+        );
 
     </script>
 </body>
 </html>
-
